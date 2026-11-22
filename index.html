@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>일본 신고가 근접 · 시총 상위</title>
+<style>
+:root{
+  --bg:#0a1424; --card:#111f35; --line:#22324d; --line2:#2e4163;
+  --tx:#e9eef6; --tx2:#a9b8cf; --tx3:#7d8da6;
+  --blue:#3987e5; --blue-soft:#2a5fa8; --orange:#d95926;
+  --good:#0ca30c; --good-bg:#0f2e1c; --warn:#fab219; --warn-bg:#33290d; --neutral-bg:#1b2a44;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);
+  font-family:system-ui,-apple-system,"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+  font-variant-numeric:tabular-nums}
+#deck{height:100vh;overflow-y:auto;scroll-snap-type:y proximity;scroll-behavior:smooth}
+section{min-height:100vh;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;padding:28px 20px 56px}
+.wrap{width:100%;max-width:1120px}
+h1{font-size:30px;font-weight:650;margin:0 0 6px;letter-spacing:-.01em}
+h2{font-size:26px;font-weight:650;margin:0;letter-spacing:-.01em}
+.sub{color:var(--tx2);font-size:14px;line-height:1.6}
+.muted{color:var(--tx3);font-size:12px;line-height:1.6}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 24px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:22px 0}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.tile .k{color:var(--tx2);font-size:13px}
+.tile .v{font-size:26px;font-weight:650;margin-top:4px}
+.tile .n{color:var(--tx3);font-size:12px;margin-top:2px}
+.cols{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:900px){.cols{grid-template-columns:1fr 1fr}}
+.secrow{display:grid;grid-template-columns:96px 1fr 34px;align-items:center;gap:10px;font-size:13px;margin:7px 0;color:var(--tx2)}
+.secbar{height:14px;background:var(--blue);border-radius:0 4px 4px 0;min-width:2px}
+.secrow b{color:var(--tx);font-weight:600;text-align:right}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--tx3);font-weight:500;font-size:12px}
+td.l,th.l{text-align:left}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:#16284a}
+.pos{color:#ff8f8f}.neg{color:#7fb2ff}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.code{color:var(--tx3);font-size:16px;font-weight:500;margin-left:8px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.chip{font-size:12px;padding:4px 10px;border-radius:999px;background:var(--neutral-bg);color:var(--tx2);border:1px solid var(--line2)}
+.chip.good{background:var(--good-bg);color:#7fe07f;border-color:#1d5a34}
+.chip.warn{background:var(--warn-bg);color:var(--warn);border-color:#5a4713}
+.kpis{display:flex;gap:22px;flex-wrap:wrap;text-align:right}
+.kpi .k{color:var(--tx3);font-size:12px}
+.kpi .v{font-size:20px;font-weight:650}
+ul.intro{margin:16px 0 18px;padding-left:18px;line-height:1.75;font-size:15px}
+ul.intro li::marker{color:var(--tx3)}
+.ctitle{font-size:13px;color:var(--tx2);margin:0 0 6px;display:flex;justify-content:space-between;gap:8px}
+.chartbox{background:#0d1a2e;border:1px solid var(--line);border-radius:10px;padding:12px 12px 8px;position:relative}
+svg{display:block;width:100%;height:auto;overflow:visible}
+svg text{font-family:inherit;font-variant-numeric:tabular-nums}
+.tip{position:absolute;pointer-events:none;background:#06101f;border:1px solid var(--line2);border-radius:8px;padding:6px 9px;font-size:12px;color:var(--tx);white-space:nowrap;display:none;z-index:5}
+.note{margin-top:12px}
+#nav{position:fixed;right:18px;bottom:14px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--tx3);
+  background:rgba(10,20,36,.85);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+#nav button{background:none;border:1px solid var(--line2);color:var(--tx2);border-radius:999px;width:26px;height:26px;cursor:pointer;font-size:13px}
+#nav button:hover{background:#16284a}
+.empty{color:var(--tx3);font-size:13px;padding:40px 8px;text-align:center}
+</style>
+</head>
+<body>
+<main id="deck"><section><div class="wrap"><p class="sub">데이터를 불러오는 중…</p></div></section></main>
+<div id="nav"><button id="prev" aria-label="이전">↑</button><span id="pos">–</span><button id="next" aria-label="다음">↓</button><span>방향키로 이동</span></div>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pct = (v, d = 1) => v == null ? '–' : (v > 0 ? '+' : '') + (v * 100).toFixed(d) + '%';
+const cls = v => v == null ? '' : v > 0 ? 'pos' : v < 0 ? 'neg' : '';
+const num = v => v == null ? '–' : v.toLocaleString('ko-KR', {maximumFractionDigits: v < 1000 ? 1 : 0});
+// 십억엔 → 조엔/억엔 표기
+const yen = bn => bn == null ? 'n/a' : Math.abs(bn) >= 1000 ? (bn / 1000).toFixed(2) + '조' : Math.round(bn * 10).toLocaleString('ko-KR') + '억';
+const C = {blue:'#3987e5', orange:'#d95926', grid:'#22324d', tx2:'#a9b8cf', tx3:'#7d8da6', tx:'#e9eef6', good:'#0ca30c'};
+
+async function load(path) {
+  try {
+    const r = await fetch(path + '?v=' + Date.now(), {cache: 'no-store'});
+    if (!r.ok) return null;
+    return await r.json();
+  } catch (e) { return null; }
+}
+
+function niceTicks(lo, hi, n) {
+  const span = hi - lo || 1, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= step0) || 10 * mag;
+  const out = [];
+  for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(6));
+  return out;
+}
+
+/* ───────── 주가 차트 (1년, 52주 고가선, 호버 십자선) ───────── */
+function priceChart(p) {
+  const W = 520, H = 250, L = 52, R = 62, T = 14, B = 26;
+  const n = p.c.length, lo0 = Math.min(...p.c), hi0 = Math.max(p.hi52, ...p.c);
+  const pad = (hi0 - lo0) * 0.06 || 1, lo = lo0 - pad, hi = hi0 + pad;
+  const x = i => L + (W - L - R) * i / (n - 1), y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+  let g = '';
+  niceTicks(lo, hi, 4).forEach(v => {
+    g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${C.grid}" stroke-width="1"/>` +
+         `<text x="${L - 8}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="${C.tx3}">${num(v)}</text>`;
+  });
+  let lastM = '', lastX = -99;
+  p.d.forEach((d, i) => {
+    const m = d.slice(0, 7);
+    if (m !== lastM) {
+      lastM = m;
+      if (i > 0 && x(i) - lastX > 62) {
+        lastX = x(i);
+        g += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="${C.tx3}">${d.slice(2, 4)}.${+d.slice(5, 7)}</text>`;
+      }
+    }
+  });
+  const path = p.c.map((v, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1)).join('');
+  const yh = y(p.hi52), yl = y(p.last), sep = Math.abs(yl - yh) < 14;
+  g += `<line x1="${L}" x2="${W - R}" y1="${yh}" y2="${yh}" stroke="${C.good}" stroke-width="1.2" stroke-dasharray="5 4"/>` +
+       `<text x="${W - R + 6}" y="${yh + (sep ? -4 : 4)}" font-size="11" fill="${C.tx2}">52주 고가</text>` +
+       `<path d="${path}" fill="none" stroke="${C.blue}" stroke-width="2" stroke-linejoin="round"/>` +
+       `<circle cx="${x(n - 1)}" cy="${yl}" r="4" fill="${C.blue}" stroke="#0d1a2e" stroke-width="2"/>` +
+       `<text x="${W - R + 6}" y="${yl + (sep ? 14 : 4)}" font-size="12" font-weight="600" fill="${C.tx}">${num(p.last)}</text>` +
+       `<line class="xh" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="${C.tx3}" stroke-width="1" visibility="hidden"/>` +
+       `<circle class="xd" r="4" fill="${C.blue}" stroke="#0d1a2e" stroke-width="2" visibility="hidden"/>` +
+       `<rect class="hit" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/>`;
+  return {svg: `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="최근 1년 주가">${g}</svg>`, geo: {W, L, R, n, x, y}};
+}
+function wirePrice(box, p, geo) {
+  const svg = $('svg', box), tip = $('.tip', box), xh = $('.xh', box), xd = $('.xd', box), hit = $('.hit', box);
+  const move = ev => {
+    const r = svg.getBoundingClientRect(), sx = (ev.clientX - r.left) / r.width * geo.W;
+    const i = Math.max(0, Math.min(geo.n - 1, Math.round((sx - geo.L) / (geo.W - geo.L - geo.R) * (geo.n - 1))));
+    const px = geo.x(i), py = geo.y(p.c[i]);
+    xh.setAttribute('x1', px); xh.setAttribute('x2', px); xh.setAttribute('visibility', 'visible');
+    xd.setAttribute('cx', px); xd.setAttribute('cy', py); xd.setAttribute('visibility', 'visible');
+    tip.innerHTML = `${p.d[i]} · <b>${num(p.c[i])}엔</b>`;
+    tip.style.display = 'block';
+    const bx = box.getBoundingClientRect(), left = ev.clientX - bx.left + 14;
+    tip.style.left = Math.min(left, bx.width - tip.offsetWidth - 8) + 'px';
+    tip.style.top = '10px';
+  };
+  hit.addEventListener('pointermove', move);
+  hit.addEventListener('pointerleave', () => { tip.style.display = 'none'; xh.setAttribute('visibility', 'hidden'); xd.setAttribute('visibility', 'hidden'); });
+}
+
+/* ───────── 분기 매출 막대 / 이익률 선 (축 하나씩, 위아래 배치) ───────── */
+function revChart(qs) {
+  const W = 520, H = 150, L = 12, R = 12, T = 22, B = 24, n = qs.length;
+  const vals = qs.map(q => q.rev).filter(v => v != null), mx = Math.max(...vals, 1);
+  const bw = (W - L - R) / n, base = H - B, y = v => base - (base - T) * v / mx;
+  let g = `<line x1="${L}" x2="${W - R}" y1="${base}" y2="${base}" stroke="${C.grid}" stroke-width="1"/>`;
+  qs.forEach((q, i) => {
+    const cx = L + bw * (i + .5), w = Math.min(46, bw - 14);
+    if (q.rev == null) {
+      g += `<text x="${cx}" y="${base - 8}" text-anchor="middle" font-size="11" fill="${C.tx3}">n/a</text>`;
+    } else {
+      const top = y(q.rev), h = Math.max(1, base - top), r = Math.min(4, h);
+      g += `<path d="M${cx - w / 2} ${base}V${top + r}q0 ${-r} ${r} ${-r}h${w - 2 * r}q${r} 0 ${r} ${r}V${base}z" fill="${C.blue}"><title>${q.q} 매출 ${yen(q.rev)}엔</title></path>` +
+           `<text x="${cx}" y="${top - 6}" text-anchor="middle" font-size="11" fill="${C.tx}">${yen(q.rev)}</text>`;
+    }
+    g += `<text x="${cx}" y="${H - 7}" text-anchor="middle" font-size="11" fill="${C.tx3}">${q.q}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="분기 매출">${g}</svg>`;
+}
+function marginChart(qs) {
+  const W = 520, H = 130, L = 12, R = 12, T = 24, B = 12, n = qs.length;
+  const m = qs.map(q => q.rev == null || q.profit == null ? null : q.profit / q.rev * 100);
+  const vals = m.filter(v => v != null); if (!vals.length) return '';
+  let lo = Math.min(0, ...vals), hi = Math.max(0, ...vals); const pad = (hi - lo) * .12 || 1; hi += pad; if (lo < 0) lo -= pad;
+  const bw = (W - L - R) / n, x = i => L + bw * (i + .5), y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+  let g = `<line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="${C.grid}" stroke-width="1"/>`, seg = '';
+  m.forEach((v, i) => {
+    if (v == null) { if (seg) g += `<path d="${seg}" fill="none" stroke="${C.orange}" stroke-width="2"/>`; seg = ''; return; }
+    seg += (seg ? 'L' : 'M') + x(i) + ' ' + y(v).toFixed(1);
+  });
+  if (seg) g += `<path d="${seg}" fill="none" stroke="${C.orange}" stroke-width="2" stroke-linejoin="round"/>`;
+  m.forEach((v, i) => {
+    if (v == null) return;
+    const below = v < 0;
+    g += `<circle cx="${x(i)}" cy="${y(v)}" r="4.5" fill="${C.orange}" stroke="#0d1a2e" stroke-width="2"><title>${qs[i].q} ${v.toFixed(1)}%</title></circle>` +
+         `<text x="${x(i)}" y="${y(v) + (below ? 18 : -10)}" text-anchor="middle" font-size="11" fill="${C.tx}">${v.toFixed(1)}%</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="분기 이익률">${g}</svg>`;
+}
+
+/* ───────── 파생 수치 ───────── */
+function enrich(co, prices) {
+  const p = prices && prices.t ? prices.t[co.code] : null;
+  co.p = p && p.c && p.c.length ? p : null;
+  co.mcap = co.p ? co.snap_mcap * co.p.last / co.snap_price : co.snap_mcap;
+  const qs = co.quarters, ok = q => q && q.rev != null && q.profit != null;
+  let i = qs.length - 1; while (i >= 0 && !ok(qs[i])) i--;
+  co.fin = null;
+  if (i >= 0) {
+    const cur = qs[i], prev = ok(qs[i - 4]) ? qs[i - 4] : null;
+    co.fin = {q: cur.q, margin: cur.profit / cur.rev, yoy: prev ? cur.rev / prev.rev - 1 : null, pm: prev ? prev.profit / prev.rev : null};
+  }
+  return co;
+}
+const mlabel = co => co.metric === 'ord' ? '경상이익률' : '영업이익률';
+const rlabel = co => co.metric === 'ord' ? '경상수익' : '매출';
+function offChip(co) {
+  if (!co.p) return '<span class="chip">주가 갱신 대기</span>';
+  const o = co.p.off, t = `52주 고가 대비 ${pct(o)}`;
+  return o >= -0.03 ? `<span class="chip good">● 고가권 · ${t}</span>` : o >= -0.10 ? `<span class="chip">${t}</span>` : `<span class="chip warn">▲ 이탈 · ${t}</span>`;
+}
+
+/* ───────── 화면 ───────── */
+function cover(data, prices, cos) {
+  const withP = cos.filter(c => c.p), near = withP.filter(c => c.p.off >= -0.03).length;
+  const avg1m = withP.length ? withP.reduce((s, c) => s + (c.p.r1m || 0), 0) / withP.length : null;
+  const sec = {}; cos.forEach(c => sec[c.sector] = (sec[c.sector] || 0) + 1);
+  const secs = Object.entries(sec).sort((a, b) => b[1] - a[1]), mx = secs[0][1];
+  const asof = withP.length ? withP[0].p.asof : data.meta.as_of;
+  return `<section><div class="wrap">
+    <h1>일본 신고가 근접 · 시총 상위 ${cos.length}</h1>
+    <div class="sub">주가 기준일 ${asof} · ${esc(data.meta.universe)}</div>
+    <div class="tiles">
+      <div class="tile"><div class="k">종목 수</div><div class="v">${cos.length}</div><div class="n">시총 합계 ${cos.reduce((s, c) => s + c.mcap, 0).toFixed(0)}조엔</div></div>
+      <div class="tile"><div class="k">52주 고가 3% 이내</div><div class="v">${withP.length ? near : '–'}</div><div class="n">${withP.length ? '전체의 ' + Math.round(near / withP.length * 100) + '%' : '주가 갱신 대기'}</div></div>
+      <div class="tile"><div class="k">평균 1개월 수익률</div><div class="v ${cls(avg1m)}">${pct(avg1m)}</div><div class="n">단순평균</div></div>
+      <div class="tile"><div class="k">최다 섹터</div><div class="v">${esc(secs[0][0])}</div><div class="n">${secs[0][1]}개 종목</div></div>
+    </div>
+    <div class="card"><div class="ctitle"><span>대분류별 종목 수</span></div>
+      ${secs.map(([k, v]) => `<div class="secrow"><span>${esc(k)}</span><div><div class="secbar" style="width:${v / mx * 100}%"></div></div><b>${v}</b></div>`).join('')}
+    </div>
+    <p class="muted" style="margin-top:14px">아래로 스크롤하거나 방향키(↓ ↑)로 넘기세요. ${prices && prices.updated ? '주가 자동 갱신: ' + prices.updated.replace('T', ' ').replace('Z', ' UTC') : ''}</p>
+  </div></section>`;
+}
+function listPage(cos) {
+  return `<section id="list"><div class="wrap"><h2 style="margin-bottom:14px">전체 목록</h2><div class="card" style="padding:10px 14px;overflow-x:auto">
+    <table><thead><tr><th>#</th><th class="l">종목</th><th class="l">섹터</th><th>시총(조엔)</th><th>주가(엔)</th><th>고가 대비</th><th>1M</th><th>3M</th><th>1Y</th><th>최근 분기 이익률</th></tr></thead><tbody>
+    ${cos.map((c, i) => `<tr data-go="co-${c.code}"><td>${i + 1}</td><td class="l">${esc(c.name)} <span class="muted">${c.code}</span></td><td class="l">${esc(c.sector)} – ${esc(c.sub)}</td>
+      <td>${c.mcap.toFixed(1)}</td><td>${c.p ? num(c.p.last) : '–'}</td><td>${c.p ? pct(c.p.off) : '–'}</td>
+      <td class="${cls(c.p && c.p.r1m)}">${c.p ? pct(c.p.r1m) : '–'}</td><td class="${cls(c.p && c.p.r3m)}">${c.p ? pct(c.p.r3m) : '–'}</td><td class="${cls(c.p && c.p.r1y)}">${c.p ? pct(c.p.r1y) : '–'}</td>
+      <td>${c.fin ? (c.fin.margin * 100).toFixed(1) + '%' : '–'}</td></tr>`).join('')}
+    </tbody></table></div><p class="muted" style="margin-top:10px">행을 누르면 해당 종목으로 이동합니다. 수익률 색: 빨강 상승, 파랑 하락.</p></div></section>`;
+}
+function card(co, i, total, meta) {
+  const f = co.fin;
+  const line3 = f ? `최근 분기(${f.q}) ${rlabel(co)} YoY ${pct(f.yoy)} · ${mlabel(co)} ${f.pm != null ? (f.pm * 100).toFixed(1) + '% → ' : ''}${(f.margin * 100).toFixed(1)}%${f.pm != null ? ' (전년 동기 → 최근)' : ''}` : '분기 실적 데이터 없음';
+  return `<section id="co-${co.code}"><div class="wrap"><div class="card">
+    <div class="head">
+      <div>
+        <div class="muted">${i + 1} / ${total}</div>
+        <h2>${esc(co.name)}<span class="code">${co.code} · ${esc(co.name_en)}</span></h2>
+        <div class="chips"><span class="chip">${esc(co.sector)} – ${esc(co.sub)}</span>${offChip(co)}</div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><div class="k">시총</div><div class="v">${co.mcap.toFixed(1)}조엔</div></div>
+        <div class="kpi"><div class="k">1개월</div><div class="v ${cls(co.p && co.p.r1m)}">${co.p ? pct(co.p.r1m) : '–'}</div></div>
+        <div class="kpi"><div class="k">1년</div><div class="v ${cls(co.p && co.p.r1y)}">${co.p ? pct(co.p.r1y) : '–'}</div></div>
+      </div>
+    </div>
+    <ul class="intro"><li>${esc(co.desc)}</li><li>매출비중: ${esc(co.mix)}</li><li>${line3}</li></ul>
+    <div class="cols">
+      <div>
+        <div class="ctitle"><span>주가 · 최근 1년 (엔)</span><span class="muted">${co.p ? co.p.asof + ' 종가' : ''}</span></div>
+        <div class="chartbox" data-price="${co.code}"><div class="tip"></div>${co.p ? '' : '<div class="empty">주가 데이터 대기 중입니다. 첫 자동 갱신 후 표시됩니다.</div>'}</div>
+      </div>
+      <div>
+        <div class="ctitle"><span>분기 ${rlabel(co)} (엔)</span></div>
+        <div class="chartbox">${revChart(co.quarters)}</div>
+        <div class="ctitle" style="margin-top:10px"><span>분기 ${mlabel(co)}</span></div>
+        <div class="chartbox">${marginChart(co.quarters)}</div>
+      </div>
+    </div>
+    <div class="note muted">${co.note ? esc(co.note) + '<br>' : ''}실적: ${esc(meta.fin_source)} · ${esc(meta.mix_note)}</div>
+  </div></div></section>`;
+}
+
+async function main() {
+  const [data, prices] = await Promise.all([load('data/companies.json'), load('data/prices.json')]);
+  const deck = $('#deck');
+  if (!data) { deck.innerHTML = '<section><div class="wrap"><p class="sub">data/companies.json 을 불러오지 못했습니다.</p></div></section>'; return; }
+  const cos = data.companies.map(c => enrich(c, prices)).sort((a, b) => b.mcap - a.mcap);
+  deck.innerHTML = cover(data, prices, cos) + listPage(cos) + cos.map((c, i) => card(c, i, cos.length, data.meta)).join('');
+  cos.forEach(c => {
+    if (!c.p) return;
+    const box = $(`[data-price="${c.code}"]`), {svg, geo} = priceChart(c.p);
+    box.insertAdjacentHTML('beforeend', svg); wirePrice(box, c.p, geo);
+  });
+
+  const secs = [...deck.querySelectorAll('section')], pos = $('#pos');
+  const cur = () => { const t = deck.scrollTop + deck.clientHeight / 2; let k = 0; secs.forEach((s, i) => { if (s.offsetTop <= t) k = i; }); return k; };
+  const go = i => secs[Math.max(0, Math.min(secs.length - 1, i))].scrollIntoView({behavior: 'smooth', block: 'start'});
+  const upd = () => pos.textContent = (cur() + 1) + ' / ' + secs.length;
+  if (location.hash) { const el = document.getElementById(location.hash.slice(1)); if (el) el.scrollIntoView({behavior: 'instant', block: 'start'}); }
+  deck.addEventListener('scroll', upd, {passive: true}); upd();
+  $('#next').onclick = () => go(cur() + 1); $('#prev').onclick = () => go(cur() - 1);
+  document.addEventListener('keydown', e => {
+    if (['ArrowDown', 'ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); go(cur() + 1); }
+    else if (['ArrowUp', 'ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); go(cur() - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); go(0); }
+    else if (e.key === 'End') { e.preventDefault(); go(secs.length - 1); }
+  });
+  deck.addEventListener('click', e => { const tr = e.target.closest('[data-go]'); if (tr) document.getElementById(tr.dataset.go).scrollIntoView({behavior: 'smooth', block: 'start'}); });
+}
+main();
+</script>
+</body>
+</html>
