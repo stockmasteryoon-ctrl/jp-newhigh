@@ -58,6 +58,20 @@ svg{display:block;width:100%;height:auto;overflow:visible}
 svg text{font-family:inherit;font-variant-numeric:tabular-nums}
 .tip{position:absolute;pointer-events:none;background:#06101f;border:1px solid var(--line2);border-radius:8px;padding:6px 9px;font-size:12px;color:var(--tx);white-space:nowrap;display:none;z-index:5}
 .note{margin-top:12px}
+.egrid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:900px){.egrid{grid-template-columns:repeat(3,1fr)}}
+.ecard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px 10px}
+.etop{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.enm{font-size:16px;font-weight:650}.enm span{color:var(--tx3);font-size:11.5px;font-weight:500;margin-left:6px}
+.epx{font-size:14px;font-weight:600}
+.erets{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--tx3);margin:3px 0 4px}
+.erets b{font-weight:600;color:var(--tx)}.erets b.pos{color:#ff8f8f}.erets b.neg{color:#7fb2ff}
+.ehold{font-size:11.5px;color:var(--tx3);margin-top:5px;border-top:1px solid var(--line);padding-top:6px;line-height:1.5}
+.ehold b{color:var(--tx2);font-weight:500}
+.etag{font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid var(--line2);color:var(--tx2);margin-left:6px;font-weight:500}
+.etag.good{background:var(--good-bg);color:#7fe07f;border-color:#1d5a34}
+.wrap.wide{max-width:1320px}
+
 #nav{position:fixed;right:18px;bottom:14px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--tx3);
   background:rgba(10,20,36,.85);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
 #nav button{background:none;border:1px solid var(--line2);color:var(--tx2);border-radius:999px;width:26px;height:26px;cursor:pointer;font-size:13px}
@@ -275,13 +289,51 @@ function card(co, i, total, meta) {
   </div></div></section>`;
 }
 
+
+/* ───────── ETF 화면 ───────── */
+function etfChart(e) {
+  const W = 400, H = 150, L = 44, R = 8, T = 8, B = 20, c = e.c, n = c.length;
+  let lo = Math.min(...c), hi = Math.max(...c); const pad = (hi - lo) * .1 || 1; lo -= pad; hi += pad;
+  const x = i => L + (W - L - R) * (n > 1 ? i / (n - 1) : 0), y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+  let g = '';
+  for (let k = 0; k < 3; k++) { const v = lo + (hi - lo) * (k + .5) / 3; g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#22324d"/><text x="${L - 6}" y="${y(v) + 3.5}" text-anchor="end" font-size="10" fill="#7d8da6">${num(Math.round(v))}</text>`; }
+  const ticks = n >= 40 ? [0, Math.round((n - 1) / 3), Math.round((n - 1) * 2 / 3), n - 1] : [0, n - 1];
+  ticks.forEach((i, k) => { g += `<text x="${x(i)}" y="${H - 5}" text-anchor="${k === 0 ? 'start' : k === ticks.length - 1 ? 'end' : 'middle'}" font-size="10" fill="#7d8da6">${e.d[i].slice(2, 7).replace('-', '.')}</text>`; });
+  if (n >= 26) { let p = ''; for (let i = 25; i < n; i++) { let s2 = 0; for (let j = i - 25; j <= i; j++) s2 += c[j]; p += (p ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(s2 / 26).toFixed(1); } g += `<path d="${p}" fill="none" stroke="#7d8da6" stroke-width="1.2" stroke-dasharray="4 3"/>`; }
+  g += `<path d="${c.map((v, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1)).join('')}" fill="none" stroke="#3987e5" stroke-width="2" stroke-linejoin="round"/>`;
+  g += `<circle cx="${x(n - 1)}" cy="${y(c[n - 1])}" r="4" fill="#3987e5" stroke="#111f35" stroke-width="2"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(e.name)} 주봉">${g}</svg>`;
+}
+const etfTag = e => e.up ? '<span class="etag good">정배열</span>' : !e.full ? '<span class="etag">상장 1년 미만</span>' : '';
+function etfRank(E) {
+  const near = E.etfs.filter(e => e.off >= -0.03).length, up = E.etfs.filter(e => e.up).length;
+  return `<section id="etf"><div class="wrap"><h1>일본 섹터·테마 ETF ${E.etfs.length}개</h1>
+    <div class="sub">주가 기준일 ${E.updated} · 1년 주봉 종가 최고 대비 가까운 순 · 최고가 3% 이내 ${near}개 · 정배열(종가 &gt; 13주 평균 &gt; 26주 평균) ${up}개</div>
+    <div class="card" style="padding:10px 14px;overflow-x:auto;margin-top:14px"><table><thead><tr><th>#</th><th class="l">ETF</th><th class="l">구분</th><th>주가(엔)</th><th>고가 대비</th><th>1M</th><th>3M</th><th>6M</th><th>1Y</th><th class="l">추세</th></tr></thead><tbody>
+    ${E.etfs.map((e, i) => `<tr data-go="etf-p${Math.floor(i / 6) + 1}"><td>${i + 1}</td><td class="l">${esc(e.name)} <span class="muted">${e.code}</span></td><td class="l">${esc(e.grp)}</td><td>${num(e.last)}</td><td>${pct(e.off)}</td>
+      ${['r1m', 'r3m', 'r6m', 'r1y'].map(k => `<td class="${cls(e[k])}">${pct(e[k])}</td>`).join('')}<td class="l">${e.up ? '정배열' : !e.full ? '상장 1년 미만' : '–'}</td></tr>`).join('')}
+    </tbody></table></div>
+    <p class="muted" style="margin-top:10px">행을 누르면 해당 ETF 차트 화면으로 이동합니다. 1M·3M·6M·1Y는 4·13·26·52주 전 주간 종가 대비. ${esc(E.pending || '')}. 주가: ${esc(E.source)}.</p>
+  </div></section>`;
+}
+function etfPages(E) {
+  const pages = []; for (let i = 0; i < E.etfs.length; i += 6) pages.push(E.etfs.slice(i, i + 6));
+  return pages.map((pg, k) => `<section id="etf-p${k + 1}"><div class="wrap wide">
+    <div class="head" style="margin-bottom:12px"><h2>ETF 차트 <span class="code">${k * 6 + 1}–${k * 6 + pg.length}위 · 고가 대비 가까운 순</span></h2><div class="muted">${k + 1} / ${pages.length} · 파란 선 주간 종가, 회색 점선 26주 평균</div></div>
+    <div class="egrid">${pg.map(e => `<div class="ecard"><div class="etop"><div class="enm">${esc(e.name)}<span>${e.code} · ${esc(e.jp)}</span>${etfTag(e)}</div><div class="epx">${num(e.last)}</div></div>
+      <div class="erets"><span>고가 대비 <b>${pct(e.off)}</b></span><span>1M <b class="${cls(e.r1m)}">${pct(e.r1m)}</b></span><span>3M <b class="${cls(e.r3m)}">${pct(e.r3m)}</b></span><span>6M <b class="${cls(e.r6m)}">${pct(e.r6m)}</b></span><span>1Y <b class="${cls(e.r1y)}">${pct(e.r1y)}</b></span></div>
+      ${etfChart(e)}<div class="ehold">주요 편입 <b>${esc(e.hold)}</b></div></div>`).join('')}</div>
+    <p class="muted" style="margin-top:10px">주요 편입 종목은 기억 기반 근사(운용사 공시 미대조). 고가는 1년 주봉 종가 기준.</p>
+  </div></section>`).join('');
+}
+
 async function main() {
-  const [data, prices] = await Promise.all([load('data/companies.json'), load('data/prices.json')]);
+  const [data, prices, etf] = await Promise.all([load('data/companies.json'), load('data/prices.json'), load('data/etf.json')]);
   const deck = $('#deck');
   if (!data) { deck.innerHTML = '<section><div class="wrap"><p class="sub">data/companies.json 을 불러오지 못했습니다.</p></div></section>'; return; }
   WEEKLY = !!(prices && prices.freq === 'W');
   const cos = data.companies.map(c => enrich(c, prices)); // 파일 순서 = 스크리너(시총) 순서
-  deck.innerHTML = cover(data, prices, cos) + listPage(cos) + cos.map((c, i) => card(c, i, cos.length, data.meta)).join('');
+  deck.innerHTML = (etf && etf.etfs ? etfRank(etf) + etfPages(etf) : '') + cover(data, prices, cos) + listPage(cos) + cos.map((c, i) => card(c, i, cos.length, data.meta)).join('');
   cos.forEach(c => {
     if (!c.p) return;
     const box = $(`[data-price="${c.code}"]`), {svg, geo} = priceChart(c.p);
