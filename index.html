@@ -99,6 +99,9 @@ section.etfp{min-height:0;padding:14px 20px 28px;scroll-snap-align:none}dl.tx .o
 dl.tx .li{position:relative;padding-left:14px}dl.tx .li::before{content:"";position:absolute;left:2px;top:.72em;width:5px;height:5px;border-radius:50%;background:var(--tx3)}
 .rs{display:inline-block;font-size:13px;font-weight:650;padding:2px 9px;border-radius:999px;border:1px solid var(--line2);color:var(--tx2);margin-right:10px;vertical-align:4px;letter-spacing:0}
 .rs.hi{background:var(--good-bg);color:#7fe07f;border-color:#1d5a34}
+dl.tx .li.beat{background:var(--warn-bg);border:1px solid #5a4713;border-radius:8px;padding:2px 10px 2px 22px;margin:2px 0 0 -9px;display:inline-block}
+dl.tx .li.beat::before{left:10px;background:var(--warn)}
+dl.tx .bt{color:var(--warn);font-weight:700}
 
 #nav{position:fixed;right:18px;bottom:14px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--tx3);
   background:rgba(10,20,36,.85);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
@@ -264,6 +267,7 @@ const hl = s => esc(s)
   .replace(/YY ([+−])([\d.,]+%)/g, (m, sg, v) => `<span class="${sg === '+' ? 'u' : 'dn'}">YY ${sg}${v}</span>`)
   .replace(/▲\d+% 상향/g, m => `<span class="u">${m}</span>`).replace(/▼\d+% 하향/g, m => `<span class="dn">${m}</span>`)
   .replace(/(OPM|경상이익률|세전이익률) (−?-?[\d.]+)% → (−?-?[\d.]+)%/, (m, k, x, y) => { const d = parseFloat(y.replace('−', '-')) - parseFloat(x.replace('−', '-')); return `<span class="o">${k} ${x}% → ${y}% (${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}%p)</span>`; })
+  .replace(/(FY\d+\/\d+) \+(\d+)%/g, '$1 <span class="u">+$2%</span>').replace(/3년 연속 10% 이상 초과/, '<span class="bt">3년 연속 10% 이상 초과</span>')
   .replace(/보수적/g, '<span class="a">보수적</span>').replace(/^(주가 상승 원인|별도|변동|과거):/, '<span class="k">$1:</span>');
 const mlabel = co => co.metric === 'ord' ? '경상이익률' : co.metric === 'pre' ? '세전이익률' : '영업이익률';
 const plabel = co => co.period === 'Y' ? '연간' : '분기';
@@ -309,7 +313,7 @@ function card(co, i, total, meta) {
   const G = co.g, Y = co.period === 'Y', per = Y ? '연간' : '분기', t = co.txt;
   const gsub = (v, yv) => G && G.fy ? ` <span class="muted">· 연간 가이던스 ${num(v)}${yv != null ? ' (YY ' + yy(yv, 1) + ')' : ''}</span>` : ' <span class="muted">· 연간 가이던스 N/A</span>';
   const lg = c => `<span class="lg muted"><i style="background:${c}"></i>${c === C.rev ? '매출' : esc(co.pname)}<i style="background:${C.yoy}"></i>YoY${G ? `<i style="border:1.5px dashed ${C.tx2};background:none"></i>가이던스` : ''}</span>`;
-  const rows = a => a.map(s => `<div class="li">${hl(s)}</div>`).join('');
+  const rows = a => a.map(s => `<div class="li${s.includes('10% 이상 초과') ? ' beat' : ''}">${hl(s)}</div>`).join('');
   return `<section id="co-${co.code}"><div class="wrap"><div class="card">
     <div class="head">
       <div>
