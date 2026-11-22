@@ -71,6 +71,29 @@ svg text{font-family:inherit;font-variant-numeric:tabular-nums}
 .etag{font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid var(--line2);color:var(--tx2);margin-left:6px;font-weight:500}
 .etag.good{background:var(--good-bg);color:#7fe07f;border-color:#1d5a34}
 .wrap.wide{max-width:1320px}
+.pmap{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12.5px}
+.pmap th{font-size:12px;color:var(--tx2);font-weight:500;text-align:left;padding:5px 8px;border-bottom:1px solid var(--line2);white-space:normal}
+.pmap th small{display:block;color:var(--tx3);font-weight:400}
+.pmap td{vertical-align:top;padding:5px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:normal}
+.pmap tbody tr{cursor:default}.pmap tbody tr:hover{background:none}
+.pmap tr.best td{background:#0f2333}
+.pmap .gn{font-weight:650;font-size:13.5px}.pmap .gs{color:var(--tx3);font-size:11px}
+.pstar{display:inline-block;font-size:10.5px;color:#7fe07f;border:1px solid #1d5a34;background:var(--good-bg);border-radius:999px;padding:0 6px;margin-left:5px;font-weight:500;white-space:nowrap}
+.pc{display:inline-block;margin:2px 4px 2px 0;padding:1px 7px;border-radius:7px;background:#16243c;border:1px solid var(--line);color:#c6d2e6;white-space:nowrap;cursor:pointer}
+.pc i{font-style:normal;color:var(--tx3);margin-left:5px;font-size:11px}
+.pc b{font-weight:500;margin-left:5px;font-size:11px}
+.pc b.u{color:#ff8f8f}.pc b.d{color:#7fb2ff}.pc b.e{color:var(--warn)}
+.pc.s{background:var(--good-bg);border-color:#2c8a4c;color:var(--tx)}.pc.s i{color:#7fe07f}
+.plg{display:flex;gap:6px 16px;flex-wrap:wrap;color:var(--tx2);font-size:11.5px;margin:8px 0;align-items:center}
+
+
+.chip.a{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
+dl.tx{margin:14px 0;display:grid;grid-template-columns:92px 1fr;gap:6px 12px;font-size:14px;line-height:1.6}
+dl.tx dt{color:var(--tx3);font-size:12.5px;padding-top:2px}dl.tx dd{margin:0;color:var(--tx)}
+dl.tx .u{color:#ff8f8f;font-weight:600}dl.tx .dn{color:#7fb2ff;font-weight:600}dl.tx .a{color:var(--warn);font-weight:700}dl.tx .k{color:var(--tx2)}
+.lg{white-space:nowrap}.lg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.opm{display:flex;font-size:11.5px;color:var(--tx2);text-align:center;margin-top:4px}.opm b{color:var(--tx);font-weight:600}.opm span{text-align:left;color:var(--tx3);white-space:nowrap;overflow:visible}
+@media(max-width:700px){dl.tx{grid-template-columns:1fr}.lg{display:none}}
 
 #nav{position:fixed;right:18px;bottom:14px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--tx3);
   background:rgba(10,20,36,.85);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
@@ -92,7 +115,7 @@ const num = v => v == null ? '–' : v.toLocaleString('ko-KR', {maximumFractionD
 // 십억엔 → 조엔/억엔 표기
 const yen = bn => bn == null ? 'n/a' : Math.abs(bn) >= 1000 ? (bn / 1000).toFixed(2) + '조' : Math.round(bn * 10).toLocaleString('ko-KR') + '억';
 let WEEKLY = false;
-const C = {blue:'#3987e5', orange:'#d95926', grid:'#22324d', tx2:'#a9b8cf', tx3:'#7d8da6', tx:'#e9eef6', good:'#0ca30c'};
+const C = {blue:'#3987e5', orange:'#d95926', grid:'#22324d', tx2:'#a9b8cf', tx3:'#7d8da6', tx:'#e9eef6', good:'#0ca30c', rev:'#3987e5', op:'#4aa3a0', yoy:'#e0a23a', acc:'#fab219'};
 
 async function load(path) {
   try {
@@ -110,11 +133,11 @@ function niceTicks(lo, hi, n) {
   return out;
 }
 
-/* ───────── 주가 차트 (1년, 52주 고가선, 호버 십자선) ───────── */
+/* ───────── 주가 차트 (1년, 52주 고가선, 저가 대비 상승폭, 호버 십자선) ───────── */
 function priceChart(p) {
-  const W = 520, H = 250, L = 52, R = 62, T = 14, B = 26;
+  const W = 520, H = 250, L = 52, R = 104, T = 14, B = 26;
   const n = p.c.length, lo0 = Math.min(...p.c), hi0 = Math.max(p.hi52, ...p.c);
-  const pad = (hi0 - lo0) * 0.06 || 1, lo = lo0 - pad, hi = hi0 + pad;
+  const pad = (hi0 - lo0) * 0.08 || 1, lo = lo0 - pad, hi = hi0 + pad;
   const x = i => L + (W - L - R) * i / (n - 1), y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
   let g = '';
   niceTicks(lo, hi, 4).forEach(v => {
@@ -124,21 +147,29 @@ function priceChart(p) {
   let lastM = '', lastX = -99;
   p.d.forEach((d, i) => {
     const m = d.slice(0, 7);
-    if (m !== lastM) {
-      lastM = m;
-      if (i > 0 && x(i) - lastX > 62) {
-        lastX = x(i);
-        g += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="${C.tx3}">${d.slice(2, 4)}.${+d.slice(5, 7)}</text>`;
-      }
-    }
+    if (m !== lastM) { lastM = m;
+      if (i > 0 && x(i) - lastX > 62) { lastX = x(i);
+        g += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="${C.tx3}">${d.slice(2, 4)}.${+d.slice(5, 7)}</text>`; } }
   });
   const path = p.c.map((v, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1)).join('');
-  const yh = y(p.hi52), yl = y(p.last), sep = Math.abs(yl - yh) < 14;
+  const yh = y(p.hi52), yl = y(p.last), near = yl - yh < 13, li = p.c.indexOf(lo0), ylo = y(lo0);
+  const yPx = near ? yh + 15 : yl + 4;                       // 현재가 라벨 위치 (고가선 라벨과 겹치면 아래로)
   g += `<line x1="${L}" x2="${W - R}" y1="${yh}" y2="${yh}" stroke="${C.good}" stroke-width="1.2" stroke-dasharray="5 4"/>` +
-       `<text x="${W - R + 6}" y="${yh + (sep ? -4 : 4)}" font-size="11" fill="${C.tx2}">52주 고가</text>` +
+       `<text x="${W - R + 6}" y="${yh + 3}" font-size="10.5" fill="${C.tx2}">52주 고가</text>` +
        `<path d="${path}" fill="none" stroke="${C.blue}" stroke-width="2" stroke-linejoin="round"/>` +
        `<circle cx="${x(n - 1)}" cy="${yl}" r="4" fill="${C.blue}" stroke="#0d1a2e" stroke-width="2"/>` +
-       `<text x="${W - R + 6}" y="${yl + (sep ? 14 : 4)}" font-size="12" font-weight="600" fill="${C.tx}">${num(p.last)}</text>` +
+       `<text x="${W - R + 6}" y="${yPx}" font-size="12" font-weight="600" fill="${C.tx}">${num(p.last)}</text>`;
+  // 52주 저가 → 현재가 양방향 화살표 (플롯 오른쪽 바깥)
+  const ax = W - 74, yc = yPx + 10, up = Math.round((p.last / lo0 - 1) * 100);
+  g += `<line x1="${x(li)}" x2="${ax + 5}" y1="${ylo}" y2="${ylo}" stroke="${C.tx3}" stroke-dasharray="2 3"/>`;
+  if (ylo - yc > 34) {
+    g += `<line x1="${ax}" x2="${ax}" y1="${ylo - 2}" y2="${yc + 2}" stroke="${C.tx3}" stroke-width="1.2"/>` +
+         `<path d="M${ax - 4} ${yc + 9}L${ax} ${yc + 2}L${ax + 4} ${yc + 9}M${ax - 4} ${ylo - 9}L${ax} ${ylo - 2}L${ax + 4} ${ylo - 9}" fill="none" stroke="${C.tx3}" stroke-width="1.2"/>` +
+         `<text x="${ax + 9}" y="${(ylo + yc) / 2 + 5}" font-size="14" font-weight="700" fill="${C.acc}">+${up}%</text>`;
+  } else {
+    g += `<text x="${ax + 9}" y="${ylo - 12}" font-size="14" font-weight="700" fill="${C.acc}">+${up}%</text>`;
+  }
+  g += `<text x="${ax + 9}" y="${ylo + 4}" font-size="10" fill="${C.tx3}">저가 ${num(lo0)}</text>` +
        `<line class="xh" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="${C.tx3}" stroke-width="1" visibility="hidden"/>` +
        `<circle class="xd" r="4" fill="${C.blue}" stroke="#0d1a2e" stroke-width="2" visibility="hidden"/>` +
        `<rect class="hit" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/>`;
@@ -162,44 +193,57 @@ function wirePrice(box, p, geo) {
   hit.addEventListener('pointerleave', () => { tip.style.display = 'none'; xh.setAttribute('visibility', 'hidden'); xd.setAttribute('visibility', 'hidden'); });
 }
 
-/* ───────── 분기 매출 막대 / 이익률 선 (축 하나씩, 위아래 배치) ───────── */
-function revChart(qs) {
-  const W = 520, H = 150, L = 12, R = 12, T = 22, B = 24, n = qs.length;
-  const vals = qs.map(q => q.rev).filter(v => v != null), mx = Math.max(...vals, 1);
-  const bw = (W - L - R) / n, base = H - B, y = v => base - (base - T) * v / mx;
-  let g = `<line x1="${L}" x2="${W - R}" y1="${base}" y2="${base}" stroke="${C.grid}" stroke-width="1"/>`;
-  qs.forEach((q, i) => {
-    const cx = L + bw * (i + .5), w = Math.min(46, bw - 14);
-    if (q.rev == null) {
-      g += `<text x="${cx}" y="${base - 8}" text-anchor="middle" font-size="11" fill="${C.tx3}">n/a</text>`;
-    } else {
-      const top = y(q.rev), h = Math.max(1, base - top), r = Math.min(4, h);
-      g += `<path d="M${cx - w / 2} ${base}V${top + r}q0 ${-r} ${r} ${-r}h${w - 2 * r}q${r} 0 ${r} ${r}V${base}z" fill="${C.blue}"><title>${q.q} 매출 ${yen(q.rev)}엔</title></path>` +
-           `<text x="${cx}" y="${top - 6}" text-anchor="middle" font-size="11" fill="${C.tx}">${yen(q.rev)}</text>`;
-    }
-    g += `<text x="${cx}" y="${H - 7}" text-anchor="middle" font-size="11" fill="${C.tx3}">${q.q}</text>`;
-  });
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="분기 매출">${g}</svg>`;
-}
-function marginChart(qs) {
-  const W = 520, H = 130, L = 12, R = 12, T = 24, B = 12, n = qs.length;
-  const m = qs.map(q => q.rev == null || q.profit == null ? null : q.profit / q.rev * 100);
-  const vals = m.filter(v => v != null); if (!vals.length) return '';
-  let lo = Math.min(0, ...vals), hi = Math.max(0, ...vals); const pad = (hi - lo) * .12 || 1; hi += pad; if (lo < 0) lo -= pad;
-  const bw = (W - L - R) / n, x = i => L + bw * (i + .5), y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
-  let g = `<line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="${C.grid}" stroke-width="1"/>`, seg = '';
-  m.forEach((v, i) => {
-    if (v == null) { if (seg) g += `<path d="${seg}" fill="none" stroke="${C.orange}" stroke-width="2"/>`; seg = ''; return; }
-    seg += (seg ? 'L' : 'M') + x(i) + ' ' + y(v).toFixed(1);
-  });
-  if (seg) g += `<path d="${seg}" fill="none" stroke="${C.orange}" stroke-width="2" stroke-linejoin="round"/>`;
-  m.forEach((v, i) => {
-    if (v == null) return;
-    const below = v < 0;
-    g += `<circle cx="${x(i)}" cy="${y(v)}" r="4.5" fill="${C.orange}" stroke="#0d1a2e" stroke-width="2"><title>${qs[i].q} ${v.toFixed(1)}%</title></circle>` +
-         `<text x="${x(i)}" y="${y(v) + (below ? 18 : -10)}" text-anchor="middle" font-size="11" fill="${C.tx}">${v.toFixed(1)}%</text>`;
-  });
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="분기 이익률">${g}</svg>`;
+/* ───────── 분기 막대 + YoY 꺾은선 (이중축) + 가이던스 점선 ───────── */
+const yy = (v, d = 0) => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v * 100).toFixed(d) + '%';
+function combo(qs, key, ykey, color, G, opmName) {
+  const W = 520, H = 178, L = 40, R = 42, T = 30, B = 22, nq = qs.length, gn = G ? G.n : 0, n = nq + gn;
+  const gv = G ? G[key] : null, gy = G ? G[ykey] : null;
+  const v = qs.map(q => q[key]), ys = qs.map(q => q[ykey]);
+  const all = v.concat(gv == null ? [] : [gv]);
+  let hi = Math.max(0, ...all), lo = Math.min(0, ...all); if (hi === 0 && lo === 0) hi = 1;
+  hi += (hi - lo) * 0.12; if (lo < 0) lo -= (hi - lo) * 0.06;
+  const bw = (W - L - R) / n, x = i => L + bw * (i + .5), y = a => T + (H - T - B) * (1 - (a - lo) / (hi - lo));
+  const cl = a => Math.max(-100, Math.min(200, a * 100));     // YoY 축은 −100%~+200%로 자름 (라벨은 실제값)
+  const yv = ys.filter(a => a != null).map(cl).concat(gy == null ? [] : [cl(gy)]);
+  let y2lo = Math.min(0, ...yv), y2hi = Math.max(0, ...yv); const pad = (y2hi - y2lo) * .18 || 5; y2hi += pad; if (y2lo < 0) y2lo -= pad * .4;
+  const y2 = a => T + (H - T - B) * (1 - (a - y2lo) / (y2hi - y2lo));
+  const fs = n > 9 ? 9.5 : 11;
+  let g = '';
+  niceTicks(Math.max(lo, 0), hi / 1.12, 2).slice(0, 4).forEach(a => {
+    g += `<line x1="${L}" x2="${W - R}" y1="${y(a)}" y2="${y(a)}" stroke="${C.grid}"/><text x="${L - 6}" y="${y(a) + 3.5}" text-anchor="end" font-size="10" fill="${C.tx3}">${num(a)}</text>`; });
+  if (lo < 0) g += `<line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="${C.tx3}" stroke-width="1"/>`;
+  if (yv.length) niceTicks(y2lo < 0 ? y2lo + pad * .4 : 0, y2hi - pad, 3).slice(0, 5).forEach(a => {
+    g += `<text x="${W - R + 6}" y="${y2(a) + 3.5}" font-size="10" fill="${C.yoy}">${a > 0 ? '+' : ''}${a}%</text>`; });
+  if (gn) g += `<rect x="${L + bw * nq}" y="${T - 18}" width="${bw * gn}" height="${H - T - B + 18}" fill="#16243c" opacity=".7"/>`;
+  const bar = (i, val, dash, tt) => {
+    const w = bw * .6, x0 = x(i) - w / 2, y0 = y(0), y1 = y(val), r = Math.min(4, Math.abs(y1 - y0), w / 2);
+    const d = val >= 0 ? `M${x0} ${y0}V${y1 + r}q0 ${-r} ${r} ${-r}h${w - 2 * r}q${r} 0 ${r} ${r}V${y0}` : `M${x0} ${y0}V${y1 - r}q0 ${r} ${r} ${r}h${w - 2 * r}q${r} 0 ${r} ${-r}V${y0}`;
+    return dash ? `<path d="${d}" fill="${color}" fill-opacity=".14" stroke="${color}" stroke-width="1.5" stroke-dasharray="4 3"><title>${tt}</title></path>`
+                : `<path d="${d}Z" fill="${color}"><title>${tt}</title></path>`;
+  };
+  qs.forEach((q, i) => { g += bar(i, v[i], false, `${q.q} ${num(v[i])}십억엔${ys[i] != null ? ' · YY ' + yy(ys[i], 1) : ''}`) +
+    `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" font-size="${fs}" fill="${C.tx3}">${q.q}</text>`; });
+  if (gn) G.q.forEach((lab, k) => { g += bar(nq + k, gv, true, `${lab} 가이던스 배분 ${num(gv)}십억엔${gy != null ? ' · YY ' + yy(gy, 1) : ''}`) +
+    `<text x="${x(nq + k)}" y="${H - 6}" text-anchor="middle" font-size="${fs}" fill="${C.tx2}">${lab}</text>`; });
+  let seg = '', last = null;
+  ys.forEach((a, i) => { if (a == null) { if (seg) g += `<path d="${seg}" fill="none" stroke="${C.yoy}" stroke-width="2"/>`; seg = ''; return; }
+    seg += (seg ? 'L' : 'M') + x(i) + ' ' + y2(cl(a)).toFixed(1); last = i; });
+  if (seg) g += `<path d="${seg}" fill="none" stroke="${C.yoy}" stroke-width="2" stroke-linejoin="round"/>`;
+  if (gn && gy != null) g += `<path d="${last != null ? `M${x(last)} ${y2(cl(ys[last]))}L` : 'M'}${x(nq)} ${y2(cl(gy))}L${x(n - 1)} ${y2(cl(gy))}" fill="none" stroke="${C.yoy}" stroke-width="2" stroke-dasharray="5 4"/>`;
+  const lab = (cx, cy, t) => `<text x="${cx}" y="${Math.max(T - 6, cy)}" text-anchor="middle" font-size="10.5" fill="${C.tx}" stroke="#0d1a2e" stroke-width="3" paint-order="stroke">${t}</text>`;
+  ys.forEach((a, i) => {
+    if (a == null) { g += `<text x="${x(i)}" y="${T + 10}" text-anchor="middle" font-size="10" fill="${C.tx3}">N/A</text>`; return; }
+    g += `<circle cx="${x(i)}" cy="${y2(cl(a))}" r="4" fill="${C.yoy}" stroke="#0d1a2e" stroke-width="2"/>` + lab(x(i), y2(cl(a)) - 8, yy(a)); });
+  if (gn && gy != null) { for (let k = 0; k < gn; k++) g += `<circle cx="${x(nq + k)}" cy="${y2(cl(gy))}" r="4" fill="#0d1a2e" stroke="${C.yoy}" stroke-width="2"/>`;
+    g += lab(x(nq) + bw * (gn - 1) / 2, y2(cl(gy)) - 9, yy(gy)); }
+  else if (gn) g += `<text x="${x(nq) + bw * (gn - 1) / 2}" y="${T + 10}" text-anchor="middle" font-size="10" fill="${C.tx3}">YoY N/A</text>`;
+  if (gn && G.tag) { const cx = L + bw * nq + bw * gn / 2;
+    g += `<rect x="${cx - 30}" y="${T - 17}" width="60" height="17" rx="8.5" fill="#0d1a2e" stroke="${C.acc}"/><text x="${cx}" y="${T - 5}" text-anchor="middle" font-size="11.5" font-weight="700" fill="${C.acc}">${G.tag}</text>`; }
+  let h = `<svg viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`;
+  if (opmName) { const m = (a, b) => b ? (a / b * 100).toFixed(1) + '%' : '–';
+    h += `<div class="opm"><span style="width:${L / W * 100}%">${opmName}</span>${qs.map(q => `<b style="width:${bw / W * 100}%">${m(q.p, q.rev)}</b>`).join('')}` +
+         (gn ? G.q.map(() => `<b style="width:${bw / W * 100}%;color:${C.tx2}">${m(G.p, G.rev)}</b>`).join('') : '') + `</div>`; }
+  return h;
 }
 
 /* ───────── 파생 수치 ───────── */
@@ -207,15 +251,14 @@ function enrich(co, prices) {
   const p = prices && prices.t ? prices.t[co.code] : null;
   co.p = p && p.c && p.c.length ? p : null;
   co.mcap = co.p ? co.snap_mcap * co.p.last / co.snap_price : co.snap_mcap;
-  const qs = co.quarters, ok = q => q && q.rev != null && q.profit != null;
-  let i = qs.length - 1; while (i >= 0 && !ok(qs[i])) i--;
-  co.fin = null;
-  if (i >= 0) {
-    const lag = co.period === 'Y' ? 1 : 4, cur = qs[i], prev = ok(qs[i - lag]) ? qs[i - lag] : null;
-    co.fin = {q: cur.q, margin: cur.profit / cur.rev, yoy: prev ? cur.rev / prev.rev - 1 : null, pm: prev ? prev.profit / prev.rev : null};
-  }
+  const q = co.qs && co.qs.length ? co.qs[co.qs.length - 1] : null;
+  co.fin = q ? {q: q.q, margin: q.rev ? q.p / q.rev : null, yoy: co.yoy} : null;
   return co;
 }
+const hl = s => esc(s)
+  .replace(/YY ([+−])([\d.,]+%)/g, (m, sg, v) => `<span class="${sg === '+' ? 'u' : 'dn'}">YY ${sg}${v}</span>`)
+  .replace(/▲\d+% 상향/g, m => `<span class="u">${m}</span>`).replace(/▼\d+% 하향/g, m => `<span class="dn">${m}</span>`)
+  .replace(/보수적/g, '<span class="a">보수적</span>').replace(/^(주가 상승 원인|별도|변동|과거):/, '<span class="k">$1:</span>');
 const mlabel = co => co.metric === 'ord' ? '경상이익률' : co.metric === 'pre' ? '세전이익률' : '영업이익률';
 const plabel = co => co.period === 'Y' ? '연간' : '분기';
 const rlabel = co => co.metric === 'ord' ? '경상수익' : '매출';
@@ -257,14 +300,16 @@ function listPage(cos) {
     </tbody></table></div><p class="muted" style="margin-top:10px">행을 누르면 해당 종목으로 이동합니다. 수익률 색: 빨강 상승, 파랑 하락.${WEEKLY ? ' 1M·3M·1Y는 각각 4·13·52주 전 주간 종가 대비입니다.' : ''}</p></div></section>`;
 }
 function card(co, i, total, meta) {
-  const f = co.fin;
-  const line3 = f ? `최근 ${plabel(co)}(${f.q}) ${rlabel(co)} YoY ${pct(f.yoy)} · ${mlabel(co)} ${f.pm != null ? (f.pm * 100).toFixed(1) + '% → ' : ''}${(f.margin * 100).toFixed(1)}%${f.pm != null ? (co.period === 'Y' ? ' (전년 → 최근)' : ' (전년 동기 → 최근)') : ''}` : '분기 실적 데이터 없음';
+  const G = co.g, Y = co.period === 'Y', per = Y ? '연간' : '분기', t = co.txt;
+  const gsub = (v, yv) => G && G.fy ? ` <span class="muted">· 연간 가이던스 ${num(v)}${yv != null ? ' (YY ' + yy(yv, 1) + ')' : ''}</span>` : ' <span class="muted">· 연간 가이던스 N/A</span>';
+  const lg = c => `<span class="lg muted"><i style="background:${c}"></i>${c === C.rev ? '매출' : esc(co.pname)}<i style="background:${C.yoy}"></i>YoY${G ? `<i style="border:1.5px dashed ${C.tx2};background:none"></i>가이던스` : ''}</span>`;
+  const rows = a => a.map(s => `<div>– ${hl(s)}</div>`).join('');
   return `<section id="co-${co.code}"><div class="wrap"><div class="card">
     <div class="head">
       <div>
         <div class="muted">${i + 1} / ${total}</div>
         <h2>${esc(co.name)}<span class="code">${co.code} · ${esc(co.name_en)}</span></h2>
-        <div class="chips"><span class="chip">${esc(co.sector)} – ${esc(co.sub)}</span>${offChip(co)}</div>
+        <div class="chips">${co.n225 ? '<span class="chip">닛케이225</span>' : ''}<span class="chip">${esc(co.sector)} – ${esc(co.sub)}</span>${co.hg ? '<span class="chip a">고성장</span>' : ''}</div>
       </div>
       <div class="kpis">
         <div class="kpi"><div class="k">시총</div><div class="v">${co.mcap.toFixed(1)}조엔</div></div>
@@ -272,24 +317,22 @@ function card(co, i, total, meta) {
         <div class="kpi"><div class="k">1년</div><div class="v ${cls(co.p && co.p.r1y)}">${co.p ? pct(co.p.r1y) : '–'}</div></div>
       </div>
     </div>
-    <ul class="intro"><li>${esc(co.desc)}</li><li>매출비중: ${esc(co.mix)}</li><li>${line3}</li></ul>
+    <dl class="tx"><dt>사업</dt><dd>${rows(t.biz)}</dd><dt>실적 &amp; 모멘텀</dt><dd>${rows(t.mom)}</dd><dt>가이던스</dt><dd>${rows(t.gd)}</dd></dl>
     <div class="cols">
       <div>
         <div class="ctitle"><span>주가 · 최근 1년${WEEKLY ? ' 주봉' : ''} (엔)</span><span class="muted">${co.p ? co.p.asof + ' 종가' : ''}</span></div>
         <div class="chartbox" data-price="${co.code}"><div class="tip"></div>${co.p ? '' : '<div class="empty">주가 데이터가 없습니다.</div>'}</div>
       </div>
       <div>
-        <div class="ctitle"><span>${plabel(co)} ${rlabel(co)} (엔)</span></div>
-        <div class="chartbox">${revChart(co.quarters)}</div>
-        <div class="ctitle" style="margin-top:10px"><span>${plabel(co)} ${mlabel(co)}</span></div>
-        <div class="chartbox">${marginChart(co.quarters)}</div>
+        <div class="ctitle"><span>${per} 매출 (십억엔)${gsub(G && G.fyrev, G && G.fyrev_y)}</span>${lg(C.rev)}</div>
+        <div class="chartbox">${combo(co.qs, 'rev', 'ry', C.rev, G, null)}</div>
+        <div class="ctitle" style="margin-top:10px"><span>${per} ${esc(co.pname)} (십억엔)${gsub(G && G.fyp, G && G.fyp_y)}</span>${lg(C.op)}</div>
+        <div class="chartbox">${combo(co.qs, 'p', 'py', C.op, G, co.mname === 'OPM' ? 'OPM' : '이익률')}</div>
       </div>
     </div>
-    <div class="note muted">${co.note ? esc(co.note) + '<br>' : ''}실적: ${esc(meta.fin_source)} · ${esc(meta.mix_note)}${WEEKLY ? ' · 1개월·1년 수익률은 4주·52주 전 주간 종가 대비' : ''}</div>
+    <div class="note muted">${G && !Y ? '점선 = (연간 가이던스 − 누계 실적)을 남은 분기에 균등 배분. 보수적 = 가이던스를 올렸는데도 잔여 계획 증가율이 누계 실적 증가율보다 20%p 이상 낮음. ' : ''}${Y ? '연간 결산만 공시(리츠). ' : '분기는 분기 말 월 기준 달력 분기. '}YoY 축은 −100%~+200% 범위로 표시. ${co.notes && co.notes.length ? esc(co.notes.join(' · ')) + '. ' : ''}<br>실적·가이던스: ${esc(meta.fin_source)} · ${esc(meta.hist_source)}${WEEKLY ? ' · 1개월·1년 수익률은 4주·52주 전 주간 종가 대비' : ''}</div>
   </div></div></section>`;
 }
-
-
 /* ───────── ETF 화면 ───────── */
 function etfChart(e) {
   const W = 400, H = 150, L = 44, R = 8, T = 8, B = 20, c = e.c, n = c.length;
@@ -327,13 +370,46 @@ function etfPages(E) {
   </div></section>`).join('');
 }
 
+/* ───────── 섹터 × 포지션 지도 ───────── */
+const POSN = {FW: '공격수', AM: '공미', DM: '수미', DF: '수비수'};
+function growth(co) { return {strong: !!co.hg, dm: co.dm}; }
+function sigTag(c) {
+  if (!c) return '';
+  if (c.s === 'up') return `<b class="u">▲${esc(c.l)}</b>`;
+  if (c.s === 'down') return `<b class="d">▼${esc(c.l)}</b>`;
+  if (c.s === 'event') return '<b class="e">◆이벤트</b>';
+  return '';
+}
+function mapPage(cos, PZ) {
+  const by = {}; cos.forEach(c => by[c.code] = c);
+  const rows = PZ.groups.map(([g, codes]) => {
+    const items = codes.filter(c => by[c]).map(c => ({co: by[c], pos: PZ.pos[c] || 'DF', g: growth(by[c]), cat: PZ.cat[c]}));
+    const att = items.filter(i => i.pos === 'FW' || i.pos === 'AM').length, sg = items.filter(i => i.g.strong).length;
+    const r1 = items.map(i => i.co.p ? i.co.p.r1m : 0).sort((a, b) => a - b), m1 = r1.length ? (r1[Math.floor((r1.length - 1) / 2)] + r1[Math.ceil((r1.length - 1) / 2)]) / 2 : 0;
+    return {g, items, att, sg, m1, n: items.length};
+  }).filter(r => r.n).sort((a, b) => (b.att / b.n - a.att / a.n) || (b.sg - a.sg) || (b.m1 - a.m1));
+  const chip = i => { const f = i.co.fin, dm = i.g.dm;
+    const y = f && f.yoy != null ? `<i>${pct(f.yoy, 0)}${dm == null ? '' : dm >= 0.5 ? '↑' : dm <= -0.5 ? '↓' : ''}</i>` : '';
+    return `<span class="pc${i.g.strong ? ' s' : ''}" data-go="co-${i.co.code}" title="${esc(i.cat ? i.cat.t : '')}">${esc(i.co.name)}${y}${sigTag(i.cat)}</span>`; };
+  const cell = (r, p) => '<td>' + r.items.filter(i => i.pos === p).sort((a, b) => (b.co.p ? b.co.p.r1m : 0) - (a.co.p ? a.co.p.r1m : 0)).map(chip).join('') + '</td>';
+  return `<section id="map"><div class="wrap wide"><h2>섹터 × 포지션 지도</h2>
+    <div class="plg"><span><span class="pc s">종목<i>+26%↑</i></span>고성장: 매출 YY +${Math.round(PZ.yoy * 100)}% 이상 또는 이익률 개선 +${PZ.threshold}%p 이상</span><span>숫자는 최근 분기 매출 YY, ↑↓는 이익률 0.5%p 이상 개선·악화</span><span><b style="color:#ff8f8f">▲</b> 연간 가이던스 상향 <b style="color:#7fb2ff">▼</b> 하향 <b style="color:var(--warn)">◆</b> 실적 외 이벤트</span><span><span class="pstar">주가·실적 일치</span>공격수·공미 절반 이상, 고성장 2개 이상</span></div>
+    <div class="card" style="padding:8px 12px"><table class="pmap"><colgroup><col style="width:190px"><col style="width:17%"><col style="width:23%"><col style="width:25%"><col></colgroup>
+    <thead><tr><th>섹터</th><th>공격수<small>비방어 업종, 실적으로 상승</small></th><th>공미<small>방어·내수지만 동종 대비 초과</small></th><th>수미<small>테마 묶음으로 동반 상승</small></th><th>수비수<small>덜 빠져서 고가 근처</small></th></tr></thead><tbody>
+    ${rows.map(r => { const best = r.att / r.n >= 0.5 && r.sg >= 2;
+      return `<tr class="${best ? 'best' : ''}"><td><div class="gn">${esc(r.g)}${best ? '<span class="pstar">주가·실적 일치</span>' : ''}</div><div class="gs">공격·공미 ${r.att}/${r.n} · 고성장 ${r.sg} · 1M ${pct(r.m1)}</div></td>${cell(r, 'FW')}${cell(r, 'AM')}${cell(r, 'DM')}${cell(r, 'DF')}</tr>`; }).join('')}
+    </tbody></table></div>
+    <p class="muted" style="margin-top:8px">칩을 누르면 종목 카드로 이동합니다. 매출 YY·이익률은 최근 분기와 전년 동기 비교(단일 분기)이며, 전년 동기가 적자였던 경우 이익률 개선은 고성장에서 제외했습니다. ${esc(PZ.src || '')}.</p>
+  </div></section>`;
+}
+
 async function main() {
-  const [data, prices, etf] = await Promise.all([load('data/companies.json'), load('data/prices.json'), load('data/etf.json')]);
+  const [data, prices, etf, PZ] = await Promise.all([load('data/companies.json'), load('data/prices.json'), load('data/etf.json'), load('data/positions.json')]);
   const deck = $('#deck');
   if (!data) { deck.innerHTML = '<section><div class="wrap"><p class="sub">data/companies.json 을 불러오지 못했습니다.</p></div></section>'; return; }
   WEEKLY = !!(prices && prices.freq === 'W');
   const cos = data.companies.map(c => enrich(c, prices)); // 파일 순서 = 스크리너(시총) 순서
-  deck.innerHTML = (etf && etf.etfs ? etfRank(etf) + etfPages(etf) : '') + cover(data, prices, cos) + listPage(cos) + cos.map((c, i) => card(c, i, cos.length, data.meta)).join('');
+  deck.innerHTML = (etf && etf.etfs ? etfRank(etf) + etfPages(etf) : '') + cover(data, prices, cos) + (PZ ? mapPage(cos, PZ) : '') + listPage(cos) + cos.map((c, i) => card(c, i, cos.length, data.meta)).join('');
   cos.forEach(c => {
     if (!c.p) return;
     const box = $(`[data-price="${c.code}"]`), {svg, geo} = priceChart(c.p);
