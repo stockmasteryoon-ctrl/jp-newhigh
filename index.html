@@ -322,8 +322,8 @@ function etfPages(E) {
     <div class="head" style="margin-bottom:12px"><h2>ETF 차트 <span class="code">${k * 6 + 1}–${k * 6 + pg.length}위 · 고가 대비 가까운 순</span></h2><div class="muted">${k + 1} / ${pages.length} · 파란 선 주간 종가, 회색 점선 26주 평균</div></div>
     <div class="egrid">${pg.map(e => `<div class="ecard"><div class="etop"><div class="enm">${esc(e.name)}<span>${e.code} · ${esc(e.jp)}</span>${etfTag(e)}</div><div class="epx">${num(e.last)}</div></div>
       <div class="erets"><span>고가 대비 <b>${pct(e.off)}</b></span><span>1M <b class="${cls(e.r1m)}">${pct(e.r1m)}</b></span><span>3M <b class="${cls(e.r3m)}">${pct(e.r3m)}</b></span><span>6M <b class="${cls(e.r6m)}">${pct(e.r6m)}</b></span><span>1Y <b class="${cls(e.r1y)}">${pct(e.r1y)}</b></span></div>
-      ${etfChart(e)}<div class="ehold">주요 편입 <b>${esc(e.hold)}</b></div></div>`).join('')}</div>
-    <p class="muted" style="margin-top:10px">주요 편입 종목은 기억 기반 근사(운용사 공시 미대조). 고가는 1년 주봉 종가 기준.</p>
+      ${etfChart(e)}<div class="ehold">편입 상위 <span>(${e.hold_asof.slice(2).replace(/-/g, '.')})</span> <b>${e.hold.map(h => esc(h.n) + ' ' + h.w.toFixed(1) + '%').join(' · ')}</b></div></div>`).join('')}</div>
+    <p class="muted" style="margin-top:10px">편입 상위 5종목은 비중 순, 괄호는 기준일. 출처: 운용사 팩트시트·월보(10/30), JPX ETF 개요(2/27), 국토강인화는 11/20 PCF 환산, 엔터·콘텐츠는 3/31 지수 구성. 고가는 1년 주봉 종가 기준.</p>
   </div></section>`).join('');
 }
 
