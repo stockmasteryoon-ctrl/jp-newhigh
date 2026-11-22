@@ -95,6 +95,11 @@ dl.tx .u{color:#ff8f8f;font-weight:600}dl.tx .dn{color:#7fb2ff;font-weight:600}d
 .opm{display:flex;font-size:11.5px;color:var(--tx2);text-align:center;margin-top:4px}.opm b{color:var(--tx);font-weight:600}.opm span{text-align:left;color:var(--tx3);white-space:nowrap;overflow:visible}
 @media(max-width:700px){dl.tx{grid-template-columns:1fr}.lg{display:none}}
 
+section.etfp{min-height:0;padding:14px 20px 28px;scroll-snap-align:none}dl.tx .o{color:#5cc4c0;font-weight:600}
+dl.tx .li{position:relative;padding-left:14px}dl.tx .li::before{content:"";position:absolute;left:2px;top:.72em;width:5px;height:5px;border-radius:50%;background:var(--tx3)}
+.rs{display:inline-block;font-size:13px;font-weight:650;padding:2px 9px;border-radius:999px;border:1px solid var(--line2);color:var(--tx2);margin-right:10px;vertical-align:4px;letter-spacing:0}
+.rs.hi{background:var(--good-bg);color:#7fe07f;border-color:#1d5a34}
+
 #nav{position:fixed;right:18px;bottom:14px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--tx3);
   background:rgba(10,20,36,.85);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
 #nav button{background:none;border:1px solid var(--line2);color:var(--tx2);border-radius:999px;width:26px;height:26px;cursor:pointer;font-size:13px}
@@ -258,6 +263,7 @@ function enrich(co, prices) {
 const hl = s => esc(s)
   .replace(/YY ([+−])([\d.,]+%)/g, (m, sg, v) => `<span class="${sg === '+' ? 'u' : 'dn'}">YY ${sg}${v}</span>`)
   .replace(/▲\d+% 상향/g, m => `<span class="u">${m}</span>`).replace(/▼\d+% 하향/g, m => `<span class="dn">${m}</span>`)
+  .replace(/(OPM|경상이익률|세전이익률) (−?-?[\d.]+)% → (−?-?[\d.]+)%/, (m, k, x, y) => { const d = parseFloat(y.replace('−', '-')) - parseFloat(x.replace('−', '-')); return `<span class="o">${k} ${x}% → ${y}% (${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}%p)</span>`; })
   .replace(/보수적/g, '<span class="a">보수적</span>').replace(/^(주가 상승 원인|별도|변동|과거):/, '<span class="k">$1:</span>');
 const mlabel = co => co.metric === 'ord' ? '경상이익률' : co.metric === 'pre' ? '세전이익률' : '영업이익률';
 const plabel = co => co.period === 'Y' ? '연간' : '분기';
@@ -303,7 +309,7 @@ function card(co, i, total, meta) {
   const G = co.g, Y = co.period === 'Y', per = Y ? '연간' : '분기', t = co.txt;
   const gsub = (v, yv) => G && G.fy ? ` <span class="muted">· 연간 가이던스 ${num(v)}${yv != null ? ' (YY ' + yy(yv, 1) + ')' : ''}</span>` : ' <span class="muted">· 연간 가이던스 N/A</span>';
   const lg = c => `<span class="lg muted"><i style="background:${c}"></i>${c === C.rev ? '매출' : esc(co.pname)}<i style="background:${C.yoy}"></i>YoY${G ? `<i style="border:1.5px dashed ${C.tx2};background:none"></i>가이던스` : ''}</span>`;
-  const rows = a => a.map(s => `<div>– ${hl(s)}</div>`).join('');
+  const rows = a => a.map(s => `<div class="li">${hl(s)}</div>`).join('');
   return `<section id="co-${co.code}"><div class="wrap"><div class="card">
     <div class="head">
       <div>
@@ -313,8 +319,7 @@ function card(co, i, total, meta) {
       </div>
       <div class="kpis">
         <div class="kpi"><div class="k">시총</div><div class="v">${co.mcap.toFixed(1)}조엔</div></div>
-        <div class="kpi"><div class="k">1개월</div><div class="v ${cls(co.p && co.p.r1m)}">${co.p ? pct(co.p.r1m) : '–'}</div></div>
-        <div class="kpi"><div class="k">1년</div><div class="v ${cls(co.p && co.p.r1y)}">${co.p ? pct(co.p.r1y) : '–'}</div></div>
+        <div class="kpi"><div class="k">PGOR ${co.val ? co.val.fy : ''}</div><div class="v">${co.val && co.val.p ? (co.mcap * 1e6 / co.val.p).toFixed(1) + '배' : 'N/A'}</div></div>
       </div>
     </div>
     <dl class="tx"><dt>사업</dt><dd>${rows(t.biz)}</dd><dt>실적 &amp; 모멘텀</dt><dd>${rows(t.mom)}</dd><dt>가이던스</dt><dd>${rows(t.gd)}</dd></dl>
@@ -330,7 +335,7 @@ function card(co, i, total, meta) {
         <div class="chartbox">${combo(co.qs, 'p', 'py', C.op, G, co.mname === 'OPM' ? 'OPM' : '이익률')}</div>
       </div>
     </div>
-    <div class="note muted">${G && !Y ? '점선 = (연간 가이던스 − 누계 실적)을 남은 분기에 균등 배분. 보수적 = 가이던스를 올렸는데도 잔여 계획 증가율이 누계 실적 증가율보다 20%p 이상 낮음. ' : ''}${Y ? '연간 결산만 공시(리츠). ' : '분기는 분기 말 월 기준 달력 분기. '}YoY 축은 −100%~+200% 범위로 표시. ${co.notes && co.notes.length ? esc(co.notes.join(' · ')) + '. ' : ''}<br>실적·가이던스: ${esc(meta.fin_source)} · ${esc(meta.hist_source)}${WEEKLY ? ' · 1개월·1년 수익률은 4주·52주 전 주간 종가 대비' : ''}</div>
+    <div class="note muted">PGOR = 시가총액 ÷ 연간 가이던스 ${esc(co.pname)}. ${G && !Y ? '점선 = (연간 가이던스 − 누계 실적)을 남은 분기에 균등 배분. 보수적 = 가이던스를 올렸는데도 잔여 계획 증가율이 누계 실적 증가율보다 20%p 이상 낮음. ' : ''}${Y ? '연간 결산만 공시(리츠). ' : '분기는 분기 말 월 기준 달력 분기. '}YoY 축은 −100%~+200% 범위로 표시. 2Q25·3Q25 YoY의 전년 수치는 IR BANK 분기 이력. ${co.notes && co.notes.length ? esc(co.notes.join(' · ')) + '. ' : ''}<br>실적·가이던스: ${esc(meta.fin_source)} · ${esc(meta.hist_source)}${WEEKLY ? ' · 1개월·1년 수익률은 4주·52주 전 주간 종가 대비' : ''}</div>
   </div></div></section>`;
 }
 /* ───────── ETF 화면 ───────── */
@@ -342,31 +347,30 @@ function etfChart(e) {
   for (let k = 0; k < 3; k++) { const v = lo + (hi - lo) * (k + .5) / 3; g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#22324d"/><text x="${L - 6}" y="${y(v) + 3.5}" text-anchor="end" font-size="10" fill="#7d8da6">${num(Math.round(v))}</text>`; }
   const ticks = n >= 40 ? [0, Math.round((n - 1) / 3), Math.round((n - 1) * 2 / 3), n - 1] : [0, n - 1];
   ticks.forEach((i, k) => { g += `<text x="${x(i)}" y="${H - 5}" text-anchor="${k === 0 ? 'start' : k === ticks.length - 1 ? 'end' : 'middle'}" font-size="10" fill="#7d8da6">${e.d[i].slice(2, 7).replace('-', '.')}</text>`; });
-  if (n >= 26) { let p = ''; for (let i = 25; i < n; i++) { let s2 = 0; for (let j = i - 25; j <= i; j++) s2 += c[j]; p += (p ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(s2 / 26).toFixed(1); } g += `<path d="${p}" fill="none" stroke="#7d8da6" stroke-width="1.2" stroke-dasharray="4 3"/>`; }
   g += `<path d="${c.map((v, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1)).join('')}" fill="none" stroke="#3987e5" stroke-width="2" stroke-linejoin="round"/>`;
   g += `<circle cx="${x(n - 1)}" cy="${y(c[n - 1])}" r="4" fill="#3987e5" stroke="#111f35" stroke-width="2"/>`;
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(e.name)} 주봉">${g}</svg>`;
 }
-const etfTag = e => e.up ? '<span class="etag good">정배열</span>' : !e.full ? '<span class="etag">상장 1년 미만</span>' : '';
+const etfTag = e => `<span class="etag ${e.rs >= 70 ? 'good' : ''}">RS ${e.rs}</span>`;
 function etfRank(E) {
-  const near = E.etfs.filter(e => e.off >= -0.03).length, up = E.etfs.filter(e => e.up).length;
+  const up = E.etfs.filter(e => e.rs >= 70).length, ix = E.index;
   return `<section id="etf"><div class="wrap"><h1>일본 섹터·테마 ETF ${E.etfs.length}개</h1>
-    <div class="sub">주가 기준일 ${E.updated} · 1년 주봉 종가 최고 대비 가까운 순 · 최고가 3% 이내 ${near}개 · 정배열(종가 &gt; 13주 평균 &gt; 26주 평균) ${up}개</div>
-    <div class="card" style="padding:10px 14px;overflow-x:auto;margin-top:14px"><table><thead><tr><th>#</th><th class="l">ETF</th><th class="l">구분</th><th>주가(엔)</th><th>고가 대비</th><th>1M</th><th>3M</th><th>6M</th><th>1Y</th><th class="l">추세</th></tr></thead><tbody>
-    ${E.etfs.map((e, i) => `<tr data-go="etf-p${Math.floor(i / 6) + 1}"><td>${i + 1}</td><td class="l">${esc(e.name)} <span class="muted">${e.code}</span></td><td class="l">${esc(e.grp)}</td><td>${num(e.last)}</td><td>${pct(e.off)}</td>
-      ${['r1m', 'r3m', 'r6m', 'r1y'].map(k => `<td class="${cls(e[k])}">${pct(e[k])}</td>`).join('')}<td class="l">${e.up ? '정배열' : !e.full ? '상장 1년 미만' : '–'}</td></tr>`).join('')}
+    <div class="sub">주가 기준일 ${E.updated} · RS 높은 순 · RS 70 이상 ${up}개</div>
+    <div class="card" style="padding:10px 14px;overflow-x:auto;margin-top:14px"><table><thead><tr><th>#</th><th class="l">ETF</th><th class="l">구분</th><th>RS</th><th>주가(엔)</th><th>고가 대비</th><th>1M</th><th>3M</th><th>6M</th><th>1Y</th></tr></thead><tbody>
+    ${E.etfs.map((e, i) => `<tr data-go="etf-p${Math.floor(i / 6) + 1}"><td>${i + 1}</td><td class="l">${esc(e.name)} <span class="muted">${e.code}</span></td><td class="l">${esc(e.grp)}</td><td><b>${e.rs}</b></td><td>${num(e.last)}</td><td>${pct(e.off)}</td>
+      ${['r1m', 'r3m', 'r6m', 'r1y'].map(k => `<td class="${cls(e[k])}">${pct(e[k])}</td>`).join('')}</tr>`).join('')}
+    <tr style="cursor:default"><td></td><td class="l muted">TOPIX ETF 1306 (참고)</td><td></td><td>–</td><td></td><td></td>${['r1m', 'r3m', 'r6m'].map(k => `<td class="${cls(ix[k])}">${pct(ix[k])}</td>`).join('')}<td></td></tr>
     </tbody></table></div>
-    <p class="muted" style="margin-top:10px">행을 누르면 해당 ETF 차트 화면으로 이동합니다. 1M·3M·6M·1Y는 4·13·26·52주 전 주간 종가 대비. ${esc(E.pending || '')}. 주가: ${esc(E.source)}.</p>
+    <p class="muted" style="margin-top:10px">RS = 가중수익률(1M 20% + 3M 40% + 6M 40%)의 순위를 1~100으로 정규화 (1위 = 100). 1M·3M·6M·1Y는 4·13·26·52주 전 주간 종가 대비. 구성·차트가 겹치는 ETF는 대표 1개만 남김. 주가: ${esc(E.source)}.</p>
   </div></section>`;
 }
 function etfPages(E) {
   const pages = []; for (let i = 0; i < E.etfs.length; i += 6) pages.push(E.etfs.slice(i, i + 6));
-  return pages.map((pg, k) => `<section id="etf-p${k + 1}"><div class="wrap wide">
-    <div class="head" style="margin-bottom:12px"><h2>ETF 차트 <span class="code">${k * 6 + 1}–${k * 6 + pg.length}위 · 고가 대비 가까운 순</span></h2><div class="muted">${k + 1} / ${pages.length} · 파란 선 주간 종가, 회색 점선 26주 평균</div></div>
-    <div class="egrid">${pg.map(e => `<div class="ecard"><div class="etop"><div class="enm">${esc(e.name)}<span>${e.code} · ${esc(e.jp)}</span>${etfTag(e)}</div><div class="epx">${num(e.last)}</div></div>
+  return pages.map((pg, k) => `<section class="etfp" id="etf-p${k + 1}"><div class="wrap wide">
+    <div class="head" style="margin-bottom:10px"><h2>ETF 차트 <span class="code">${k * 6 + 1}–${k * 6 + pg.length}위 · RS 높은 순</span></h2><div class="muted">${k + 1} / ${pages.length} · 1년 주간 종가</div></div>
+    <div class="egrid">${pg.map(e => `<div class="ecard"><div class="etop"><div class="enm">${esc(e.name)}<span>${e.code}</span>${etfTag(e)}</div><div class="epx">${num(e.last)}</div></div>
       <div class="erets"><span>고가 대비 <b>${pct(e.off)}</b></span><span>1M <b class="${cls(e.r1m)}">${pct(e.r1m)}</b></span><span>3M <b class="${cls(e.r3m)}">${pct(e.r3m)}</b></span><span>6M <b class="${cls(e.r6m)}">${pct(e.r6m)}</b></span><span>1Y <b class="${cls(e.r1y)}">${pct(e.r1y)}</b></span></div>
-      ${etfChart(e)}<div class="ehold">편입 상위 <span>(${e.hold_asof.slice(2).replace(/-/g, '.')})</span> <b>${e.hold.map(h => esc(h.n) + ' ' + h.w.toFixed(1) + '%').join(' · ')}</b></div></div>`).join('')}</div>
-    <p class="muted" style="margin-top:10px">편입 상위 5종목은 비중 순, 괄호는 기준일. 출처: 운용사 팩트시트·월보(10/30), JPX ETF 개요(2/27), 국토강인화는 11/20 PCF 환산, 엔터·콘텐츠는 3/31 지수 구성. 고가는 1년 주봉 종가 기준.</p>
+      ${etfChart(e)}<div class="ehold">편입 상위 <b>${e.hold.map(h => esc(h.n) + ' ' + Math.round(h.w) + '%').join(' · ')}</b></div></div>`).join('')}</div>
   </div></section>`).join('');
 }
 
