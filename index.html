@@ -77,6 +77,7 @@ const cls = v => v == null ? '' : v > 0 ? 'pos' : v < 0 ? 'neg' : '';
 const num = v => v == null ? '–' : v.toLocaleString('ko-KR', {maximumFractionDigits: v < 1000 ? 1 : 0});
 // 십억엔 → 조엔/억엔 표기
 const yen = bn => bn == null ? 'n/a' : Math.abs(bn) >= 1000 ? (bn / 1000).toFixed(2) + '조' : Math.round(bn * 10).toLocaleString('ko-KR') + '억';
+let WEEKLY = false;
 const C = {blue:'#3987e5', orange:'#d95926', grid:'#22324d', tx2:'#a9b8cf', tx3:'#7d8da6', tx:'#e9eef6', good:'#0ca30c'};
 
 async function load(path) {
@@ -137,7 +138,7 @@ function wirePrice(box, p, geo) {
     const px = geo.x(i), py = geo.y(p.c[i]);
     xh.setAttribute('x1', px); xh.setAttribute('x2', px); xh.setAttribute('visibility', 'visible');
     xd.setAttribute('cx', px); xd.setAttribute('cy', py); xd.setAttribute('visibility', 'visible');
-    tip.innerHTML = `${p.d[i]} · <b>${num(p.c[i])}엔</b>`;
+    tip.innerHTML = `${p.d[i]}${WEEKLY ? ' 주' : ''} · <b>${num(p.c[i])}엔</b>`;
     tip.style.display = 'block';
     const bx = box.getBoundingClientRect(), left = ev.clientX - bx.left + 14;
     tip.style.left = Math.min(left, bx.width - tip.offsetWidth - 8) + 'px';
@@ -196,12 +197,13 @@ function enrich(co, prices) {
   let i = qs.length - 1; while (i >= 0 && !ok(qs[i])) i--;
   co.fin = null;
   if (i >= 0) {
-    const cur = qs[i], prev = ok(qs[i - 4]) ? qs[i - 4] : null;
+    const lag = co.period === 'Y' ? 1 : 4, cur = qs[i], prev = ok(qs[i - lag]) ? qs[i - lag] : null;
     co.fin = {q: cur.q, margin: cur.profit / cur.rev, yoy: prev ? cur.rev / prev.rev - 1 : null, pm: prev ? prev.profit / prev.rev : null};
   }
   return co;
 }
-const mlabel = co => co.metric === 'ord' ? '경상이익률' : '영업이익률';
+const mlabel = co => co.metric === 'ord' ? '경상이익률' : co.metric === 'pre' ? '세전이익률' : '영업이익률';
+const plabel = co => co.period === 'Y' ? '연간' : '분기';
 const rlabel = co => co.metric === 'ord' ? '경상수익' : '매출';
 function offChip(co) {
   if (!co.p) return '<span class="chip">주가 갱신 대기</span>';
@@ -228,21 +230,21 @@ function cover(data, prices, cos) {
     <div class="card"><div class="ctitle"><span>대분류별 종목 수</span></div>
       ${secs.map(([k, v]) => `<div class="secrow"><span>${esc(k)}</span><div><div class="secbar" style="width:${v / mx * 100}%"></div></div><b>${v}</b></div>`).join('')}
     </div>
-    <p class="muted" style="margin-top:14px">아래로 스크롤하거나 방향키(↓ ↑)로 넘기세요. ${prices && prices.updated ? '주가 자동 갱신: ' + prices.updated.replace('T', ' ').replace('Z', ' UTC') : ''}</p>
+    <p class="muted" style="margin-top:14px">아래로 스크롤하거나 방향키(↓ ↑)로 넘기세요. ${prices && prices.source ? '주가: ' + esc(prices.source) + ' · 기준일 ' + asof + ' 종가' : ''}</p>
   </div></section>`;
 }
 function listPage(cos) {
   return `<section id="list"><div class="wrap"><h2 style="margin-bottom:14px">전체 목록</h2><div class="card" style="padding:10px 14px;overflow-x:auto">
-    <table><thead><tr><th>#</th><th class="l">종목</th><th class="l">섹터</th><th>시총(조엔)</th><th>주가(엔)</th><th>고가 대비</th><th>1M</th><th>3M</th><th>1Y</th><th>최근 분기 이익률</th></tr></thead><tbody>
+    <table><thead><tr><th>#</th><th class="l">종목</th><th class="l">섹터</th><th>시총(조엔)</th><th>주가(엔)</th><th>고가 대비</th><th>1M</th><th>3M</th><th>1Y</th><th>최근 이익률</th></tr></thead><tbody>
     ${cos.map((c, i) => `<tr data-go="co-${c.code}"><td>${i + 1}</td><td class="l">${esc(c.name)} <span class="muted">${c.code}</span></td><td class="l">${esc(c.sector)} – ${esc(c.sub)}</td>
       <td>${c.mcap.toFixed(1)}</td><td>${c.p ? num(c.p.last) : '–'}</td><td>${c.p ? pct(c.p.off) : '–'}</td>
       <td class="${cls(c.p && c.p.r1m)}">${c.p ? pct(c.p.r1m) : '–'}</td><td class="${cls(c.p && c.p.r3m)}">${c.p ? pct(c.p.r3m) : '–'}</td><td class="${cls(c.p && c.p.r1y)}">${c.p ? pct(c.p.r1y) : '–'}</td>
       <td>${c.fin ? (c.fin.margin * 100).toFixed(1) + '%' : '–'}</td></tr>`).join('')}
-    </tbody></table></div><p class="muted" style="margin-top:10px">행을 누르면 해당 종목으로 이동합니다. 수익률 색: 빨강 상승, 파랑 하락.</p></div></section>`;
+    </tbody></table></div><p class="muted" style="margin-top:10px">행을 누르면 해당 종목으로 이동합니다. 수익률 색: 빨강 상승, 파랑 하락.${WEEKLY ? ' 1M·3M·1Y는 각각 4·13·52주 전 주간 종가 대비입니다.' : ''}</p></div></section>`;
 }
 function card(co, i, total, meta) {
   const f = co.fin;
-  const line3 = f ? `최근 분기(${f.q}) ${rlabel(co)} YoY ${pct(f.yoy)} · ${mlabel(co)} ${f.pm != null ? (f.pm * 100).toFixed(1) + '% → ' : ''}${(f.margin * 100).toFixed(1)}%${f.pm != null ? ' (전년 동기 → 최근)' : ''}` : '분기 실적 데이터 없음';
+  const line3 = f ? `최근 ${plabel(co)}(${f.q}) ${rlabel(co)} YoY ${pct(f.yoy)} · ${mlabel(co)} ${f.pm != null ? (f.pm * 100).toFixed(1) + '% → ' : ''}${(f.margin * 100).toFixed(1)}%${f.pm != null ? (co.period === 'Y' ? ' (전년 → 최근)' : ' (전년 동기 → 최근)') : ''}` : '분기 실적 데이터 없음';
   return `<section id="co-${co.code}"><div class="wrap"><div class="card">
     <div class="head">
       <div>
@@ -259,17 +261,17 @@ function card(co, i, total, meta) {
     <ul class="intro"><li>${esc(co.desc)}</li><li>매출비중: ${esc(co.mix)}</li><li>${line3}</li></ul>
     <div class="cols">
       <div>
-        <div class="ctitle"><span>주가 · 최근 1년 (엔)</span><span class="muted">${co.p ? co.p.asof + ' 종가' : ''}</span></div>
-        <div class="chartbox" data-price="${co.code}"><div class="tip"></div>${co.p ? '' : '<div class="empty">주가 데이터 대기 중입니다. 첫 자동 갱신 후 표시됩니다.</div>'}</div>
+        <div class="ctitle"><span>주가 · 최근 1년${WEEKLY ? ' 주봉' : ''} (엔)</span><span class="muted">${co.p ? co.p.asof + ' 종가' : ''}</span></div>
+        <div class="chartbox" data-price="${co.code}"><div class="tip"></div>${co.p ? '' : '<div class="empty">주가 데이터가 없습니다.</div>'}</div>
       </div>
       <div>
-        <div class="ctitle"><span>분기 ${rlabel(co)} (엔)</span></div>
+        <div class="ctitle"><span>${plabel(co)} ${rlabel(co)} (엔)</span></div>
         <div class="chartbox">${revChart(co.quarters)}</div>
-        <div class="ctitle" style="margin-top:10px"><span>분기 ${mlabel(co)}</span></div>
+        <div class="ctitle" style="margin-top:10px"><span>${plabel(co)} ${mlabel(co)}</span></div>
         <div class="chartbox">${marginChart(co.quarters)}</div>
       </div>
     </div>
-    <div class="note muted">${co.note ? esc(co.note) + '<br>' : ''}실적: ${esc(meta.fin_source)} · ${esc(meta.mix_note)}</div>
+    <div class="note muted">${co.note ? esc(co.note) + '<br>' : ''}실적: ${esc(meta.fin_source)} · ${esc(meta.mix_note)}${WEEKLY ? ' · 1개월·1년 수익률은 4주·52주 전 주간 종가 대비' : ''}</div>
   </div></div></section>`;
 }
 
@@ -277,7 +279,8 @@ async function main() {
   const [data, prices] = await Promise.all([load('data/companies.json'), load('data/prices.json')]);
   const deck = $('#deck');
   if (!data) { deck.innerHTML = '<section><div class="wrap"><p class="sub">data/companies.json 을 불러오지 못했습니다.</p></div></section>'; return; }
-  const cos = data.companies.map(c => enrich(c, prices)).sort((a, b) => b.mcap - a.mcap);
+  WEEKLY = !!(prices && prices.freq === 'W');
+  const cos = data.companies.map(c => enrich(c, prices)); // 파일 순서 = 스크리너(시총) 순서
   deck.innerHTML = cover(data, prices, cos) + listPage(cos) + cos.map((c, i) => card(c, i, cos.length, data.meta)).join('');
   cos.forEach(c => {
     if (!c.p) return;
