@@ -113,6 +113,7 @@ dl.tx .bt{color:var(--warn);font-weight:700}
 #nav button{background:none;border:1px solid var(--line2);color:var(--tx2);border-radius:999px;width:26px;height:26px;cursor:pointer;font-size:13px}
 #nav button:hover{background:#16284a}
 .empty{color:var(--tx3);font-size:13px;padding:40px 8px;text-align:center}
+.ath{display:inline-block;font-size:12.5px;font-weight:650;letter-spacing:0;padding:3px 10px;border-radius:999px;margin-left:10px;vertical-align:4px;color:var(--warn);border:1px solid var(--warn);background:var(--warn-bg)}
 </style>
 </head>
 <body>
@@ -149,8 +150,8 @@ function niceTicks(lo, hi, n) {
 /* ───────── 주가 차트 (1년, 52주 고가선, 저가 대비 상승폭, 호버 십자선) ───────── */
 function priceChart(p) {
   const W = 520, H = 250, L = 52, R = 104, T = 14, B = 26;
-  const n = p.c.length, lo0 = Math.min(...p.c), hi0 = Math.max(p.hi52, ...p.c);
-  const pad = (hi0 - lo0) * 0.08 || 1, lo = lo0 - pad, hi = hi0 + pad;
+  const n = p.c.length, all0 = Math.min(...p.c), c52 = p.c.slice(-53), lo0 = Math.min(...c52), hi0 = Math.max(p.hi52, ...p.c);
+  const pad = (hi0 - all0) * 0.08 || 1, lo = all0 - pad, hi = hi0 + pad;
   const x = i => L + (W - L - R) * i / (n - 1), y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
   let g = '';
   niceTicks(lo, hi, 4).forEach(v => {
@@ -165,7 +166,7 @@ function priceChart(p) {
         g += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="${C.tx3}">${d.slice(2, 4)}.${+d.slice(5, 7)}</text>`; } }
   });
   const path = p.c.map((v, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1)).join('');
-  const yh = y(p.hi52), yl = y(p.last), near = yl - yh < 13, li = p.c.indexOf(lo0), ylo = y(lo0);
+  const yh = y(p.hi52), yl = y(p.last), near = yl - yh < 13, li = n - c52.length + c52.indexOf(lo0), ylo = y(lo0);
   const yPx = near ? yh + 15 : yl + 4;                       // 현재가 라벨 위치 (고가선 라벨과 겹치면 아래로)
   g += `<line x1="${L}" x2="${W - R}" y1="${yh}" y2="${yh}" stroke="${C.good}" stroke-width="1.2" stroke-dasharray="5 4"/>` +
        `<text x="${W - R + 6}" y="${yh + 3}" font-size="10.5" fill="${C.tx2}">52주 고가</text>` +
@@ -182,7 +183,7 @@ function priceChart(p) {
   } else {
     g += `<text x="${ax + 9}" y="${ylo - 12}" font-size="14" font-weight="700" fill="${C.acc}">+${up}%</text>`;
   }
-  g += `<text x="${ax + 9}" y="${ylo + 4}" font-size="10" fill="${C.tx3}">저가 ${num(lo0)}</text>` +
+  g += `<text x="${ax + 9}" y="${ylo + 4}" font-size="10" fill="${C.tx3}">52주 저가 ${num(lo0)}</text>` +
        `<line class="xh" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="${C.tx3}" stroke-width="1" visibility="hidden"/>` +
        `<circle class="xd" r="4" fill="${C.blue}" stroke="#0d1a2e" stroke-width="2" visibility="hidden"/>` +
        `<rect class="hit" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/>`;
@@ -323,8 +324,8 @@ function card(co, i, total, meta) {
     <div class="head">
       <div>
         <div class="muted">${i + 1} / ${total}</div>
-        <h2><button class="fav" data-fav="${co.code}" aria-label="즐겨찾기" title="즐겨찾기">☆</button>${esc(co.name)}<span class="code">${co.code} · ${esc(co.name_en)}</span></h2>
-        <div class="chips">${co.n225 ? '<span class="chip">닛케이225</span>' : ''}<span class="chip">${esc(co.sector)} – ${esc(co.sub)}</span>${co.hg ? '<span class="chip a">고성장</span>' : ''}</div>
+        <h2><button class="fav" data-fav="${co.code}" aria-label="즐겨찾기" title="즐겨찾기">☆</button>${esc(co.name)}<span class="code">${co.code}</span>${co.p && co.p.ath && co.p.ath.is_new ? `<span class="ath" title="2010년 이후 최고가 ${num(co.p.ath.v)}엔 · 현재가 ${pct(co.p.last / co.p.ath.v - 1)}">역사적 신고가</span>` : ''}</h2>
+        <div class="chips">${co.n225 ? '<span class="chip">닛케이225</span>' : ''}<span class="chip">${esc(co.sector)} – ${esc(co.sub)}</span></div>
       </div>
       <div class="kpis">
         <div class="kpi"><div class="k">시총</div><div class="v">${co.mcap.toFixed(1)}조엔</div></div>
@@ -334,7 +335,7 @@ function card(co, i, total, meta) {
     <dl class="tx"><dt>사업</dt><dd>${rows(t.biz)}</dd><dt>실적 &amp; 모멘텀</dt><dd>${rows(t.mom)}</dd><dt>가이던스</dt><dd>${rows(t.gd)}</dd></dl>
     <div class="cols">
       <div>
-        <div class="ctitle"><span>주가 · 최근 1년${WEEKLY ? ' 주봉' : ''} (엔)</span><span class="muted">${co.p ? co.p.asof + ' 종가' : ''}</span></div>
+        <div class="ctitle"><span>주가 · 최근 ${co.p && co.p.c.length > 60 ? '2년' : '1년'}${WEEKLY ? ' 주봉' : ''} (엔)</span><span class="muted">${co.p ? co.p.asof + ' 종가' : ''}</span></div>
         <div class="chartbox" data-price="${co.code}"><div class="tip"></div>${co.p ? '' : '<div class="empty">주가 데이터가 없습니다.</div>'}</div>
       </div>
       <div>
@@ -344,7 +345,7 @@ function card(co, i, total, meta) {
         <div class="chartbox">${combo(co.qs, 'p', 'py', C.op, G, co.mname === 'OPM' ? 'OPM' : '이익률')}</div>
       </div>
     </div>
-    <div class="note muted">PGOR = 시가총액 ÷ 연간 가이던스 ${esc(co.pname)}. ${G && !Y ? '점선 = (연간 가이던스 − 누계 실적)을 남은 분기에 균등 배분. 보수적 = 가이던스를 올렸는데도 잔여 계획 증가율이 누계 실적 증가율보다 20%p 이상 낮음. ' : ''}${Y ? '연간 결산만 공시(리츠). ' : '분기는 분기 말 월 기준 달력 분기. '}YoY 축은 −100%~+200% 범위로 표시. 2Q25·3Q25 YoY의 전년 수치는 IR BANK 분기 이력. ${co.notes && co.notes.length ? esc(co.notes.join(' · ')) + '. ' : ''}<br>실적·가이던스: ${esc(meta.fin_source)} · ${esc(meta.hist_source)}${WEEKLY ? ' · 1개월·1년 수익률은 4주·52주 전 주간 종가 대비' : ''}</div>
+    <div class="note muted">PGOR = 시가총액 ÷ 연간 가이던스 ${esc(co.pname)}. ${G && !Y ? '점선 = (연간 가이던스 − 누계 실적)을 남은 분기에 균등 배분. 보수적 = 가이던스를 올렸는데도 잔여 계획 증가율이 누계 실적 증가율보다 20%p 이상 낮음. ' : ''}${Y ? '연간 결산만 공시(리츠). ' : '분기는 분기 말 월 기준 달력 분기. '}YoY 축은 −100%~+200% 범위로 표시. 2Q25·3Q25 YoY의 전년 수치는 IR BANK 분기 이력. ${co.notes && co.notes.length ? esc(co.notes.join(' · ')) + '. ' : ''}<br>실적·가이던스: ${esc(meta.fin_source)} · ${esc(meta.hist_source)}${WEEKLY ? ' · 1개월·1년 수익률은 4주·52주 전 주간 종가 대비' : ''} · 역사적 신고가 = 현재가가 2010년 이후 최고가(분할 수정, 장중 포함)의 15% 이내 · 차트 화살표는 52주 저가 기준</div>
   </div></div></section>`;
 }
 /* ───────── ETF 화면 ───────── */
