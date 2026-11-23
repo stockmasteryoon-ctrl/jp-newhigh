@@ -134,6 +134,13 @@ dl.tx.b{line-height:1.9}dl.tx.b dd{color:var(--tx2)}dl.tx.b b{color:var(--tx);fo
 .tb tr.beat td{background:var(--warn-bg)}.tb tr.beat td:first-child{padding-left:8px;border-radius:6px 0 0 6px}.tb tr.beat td:last-child{padding-right:8px;border-radius:0 6px 6px 0}
 .pr{font-size:13.5px;line-height:1.65;color:var(--tx)}.pr .pk{color:var(--tx3);font-size:11.5px;margin-top:8px}.pr .pk:first-child{margin-top:0}
 @media(max-width:900px){.txc{grid-template-columns:1fr}}
+.hm{display:inline-block;padding:1px 8px;border-radius:6px;font-weight:700;line-height:1.5}
+.hmbg .hm.h0{color:var(--tx2);background:#1b2942}
+.hmbg .hm.u.h1{color:#e9a6a6;background:rgba(240,90,90,.10)}.hmbg .hm.u.h2{color:#ff9c9c;background:rgba(240,90,90,.22)}.hmbg .hm.u.h3{color:#ffc4c4;background:rgba(240,80,80,.42)}.hmbg .hm.u.h4{color:#fff;background:#d6454b}
+.hmbg .hm.dn.h1{color:#a9c4ea;background:rgba(80,140,240,.10)}.hmbg .hm.dn.h2{color:#8fbcff;background:rgba(80,140,240,.22)}.hmbg .hm.dn.h3{color:#c4dcff;background:rgba(70,130,240,.42)}.hmbg .hm.dn.h4{color:#fff;background:#3b7be0}
+.hmtx .hm{padding:0}.hmtx .hm.h0{color:var(--tx2);font-weight:500}
+.hmtx .hm.u.h1{color:#b98a90;font-weight:500}.hmtx .hm.u.h2{color:#e58f92}.hmtx .hm.u.h3{color:#ff7d7d}.hmtx .hm.u.h4{color:#ff5a5f;font-weight:800;font-size:15px}
+.hmtx .hm.dn.h1{color:#8a9dbd;font-weight:500}.hmtx .hm.dn.h2{color:#86aee8}.hmtx .hm.dn.h3{color:#6aa3ff}.hmtx .hm.dn.h4{color:#4a8dff;font-weight:800;font-size:15px}
 </style>
 </head>
 <body>
@@ -304,6 +311,7 @@ const hl = s0 => { const s = esc(s0), m = s.match(/(OPM|경상이익률|세전�
   else h = hlSign(s);
   return h.replace(/3년 연속 10% 이상 초과/, '<span class="bt">3년 연속 10% 이상 초과</span>')
     .replace(/보수적/g, '<span class="a">보수적</span>').replace(/^(주가 상승 원인|별도|변동|과거):/, '<span class="k">$1:</span>'); };
+const HM = new URLSearchParams(location.search).get('hm') || 'bg';
 const TXV = new URLSearchParams(location.search).get('tx') || 'c';
 const bg = (sg, t) => `<span class="bg ${sg === '+' || sg === '▲' ? 'u' : 'dn'}">${t}</span>`;
 const hlBs = t => t
@@ -319,7 +327,9 @@ const hlB = s0 => { const s = esc(s0), m = s.match(/(OPM|경상이익률|세전�
   else h = hlBs(s);
   return h.replace(/(\d년 연속 10% 이상 초과)/, '<span class="bg a">$1</span>').replace(/보수적/g, '<span class="bg a">보수적</span>').replace(/^(주가 상승 원인|별도|변동|과거):/, '<span class="k">$1:</span>'); };
 function txC(t) {
-  const R = [], sg = v => /[+▲]/.test(v) ? 'u' : 'dn', chg = v => `<span class="${sg(v)}">${v}</span>`;
+  const R = [], sg = v => /[+▲]/.test(v) ? 'u' : 'dn',
+    lv = v => { const x = parseFloat((v.match(/[\d.,]+/) || ['0'])[0].replace(/,/g, '')), pp = /%p/.test(v); return pp ? (x < 1 ? 0 : x < 3 ? 2 : x < 5 ? 3 : 4) : (x < 5 ? 0 : x < 15 ? 2 : x < 30 ? 3 : 4); },
+    chg = v => HM ? `<span class="hm ${sg(v)} h${lv(v)}">${v}</span>` : `<span class="${sg(v)}">${v}</span>`;
   const mom = t.mom[0].split(' · '), news = [mom.slice(2).join(' · '), ...t.mom.slice(1).map(x => x.replace(/^별도: /, ''))].filter(Boolean);
   let fy = '';
   const item = raw => { const it = raw.replace(/^변동: /, ''); let m;
@@ -337,8 +347,8 @@ function txC(t) {
   t.gd.slice(1).forEach(g => { const m = g.match(/^과거: 기초 가이던스 대비 실적\((.+?)\) (.+?)(?: → (.+))?$/);
     if (!m) { R.push(['기초 가이던스 대비 실적', g.replace(/^과거: /, ''), '', '']); return; }
     const fs = m[2].split(' · ').map(f => f.match(/^(FY\S+) (.+)$/)), beat = m[3] && m[3].includes('10% 이상');
-    R.push(['기초 가이던스 대비 실적', m[3] ? (beat ? `<span class="a">${m[3]}</span>` : m[3]) : '', `${m[1]} · ${fs[0][1]}${fs.length > 1 ? '~' + fs[fs.length - 1][1].replace(/^FY\d+\//, '') : ''}`, fs.map(f => /^[+−]/.test(f[2]) ? chg(f[2]) : f[2]).join(' · '), beat ? 'beat' : '']); });
-  return `<div class="txc"><table class="tb">${R.map(r => `<tr class="${r[4] === 'beat' ? 'beat' : ''}"><td>${esc(r[0])}</td><td>${r[1]}${r[2] ? `<span class="sm">${esc(r[2])}</span>` : ''}</td><td>${r[3]}</td></tr>`).join('')}</table>
+    R.push(['기초 가이던스 대비 실적', m[3] ? (beat ? `<span class="a">${m[3]}</span>` : m[3]) : '', `${m[1]} · ${fs[0][1]}${fs.length > 1 ? '~' + fs[fs.length - 1][1].replace(/^FY\d+\//, '') : ''}`, fs.map(f => /^[+−]/.test(f[2]) ? chg(f[2]) : `<span class="hm h0">${f[2]}</span>`).join(HM ? ' ' : ' · '), beat ? 'beat' : '']); });
+  return `<div class="txc"><table class="tb ${HM === 'tx' ? 'hmtx' : HM ? 'hmbg' : ''}">${R.map(r => `<tr class="${r[4] === 'beat' ? 'beat' : ''}"><td>${esc(r[0])}</td><td>${r[1]}${r[2] ? `<span class="sm">${esc(r[2])}</span>` : ''}</td><td>${r[3]}</td></tr>`).join('')}</table>
     <div class="pr"><div class="pk">사업</div>${esc(t.biz[0])}${t.biz.slice(1).map(b => `<div class="pk">주가 상승 원인</div>${esc(b.replace(/^주가 상승 원인: /, ''))}`).join('')}${news.length ? `<div class="pk">최근 공시</div>${news.map(esc).join('<br>')}` : ''}</div></div>`;
 }
 const mlabel = co => co.metric === 'ord' ? '경상이익률' : co.metric === 'pre' ? '세전이익률' : '영업이익률';
