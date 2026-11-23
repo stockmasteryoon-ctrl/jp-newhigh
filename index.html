@@ -122,6 +122,8 @@ dl.tx .bt{color:var(--warn);font-weight:700}
 #map.fon .pw{opacity:.22;transition:opacity .15s}
 #map.fn .pw[data-ath="n"],#map.fc .pw[data-ath="c"]{opacity:1}
 #map.fn .pw[data-ath="n"] .pc{box-shadow:0 0 0 1.5px var(--warn)}#map.fc .pw[data-ath="c"] .pc{outline:1.5px dashed var(--warn);outline-offset:0}
+.bk{position:absolute;right:100%;margin-right:14px;top:0;width:52px;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font:inherit;font-size:11.5px;font-weight:650;cursor:pointer;background:#111f36;color:var(--tx2);border:1px solid var(--line2);border-radius:12px}.bk i{font-style:normal;font-size:12px;line-height:1}.bk:hover{color:var(--tx);border-color:var(--tx2)}
+@media(max-width:1300px){.bk{right:auto;left:0;top:-30px;width:auto;height:24px;flex-direction:row;gap:5px;padding:0 10px;margin:0}}
 </style>
 </head>
 <body>
@@ -328,7 +330,7 @@ function card(co, i, total, meta) {
   const gsub = (v, yv) => G && G.fy ? ` <span class="muted">· 연간 가이던스 ${num(v)}${yv != null ? ' (YY ' + yy(yv, 1) + ')' : ''}</span>` : ' <span class="muted">· 연간 가이던스 N/A</span>';
   const lg = c => `<span class="lg muted"><i style="background:${c}"></i>${c === C.rev ? '매출' : esc(co.pname)}<i style="background:${C.yoy}"></i>YoY${G ? `<i style="border:1.5px dashed ${C.tx2};background:none"></i>가이던스` : ''}</span>`;
   const rows = a => a.map(s => `<div class="li${s.includes('10% 이상 초과') ? ' beat' : ''}">${hl(s)}</div>`).join('');
-  return `<section id="co-${co.code}"><div class="wrap"><div class="card">
+  return `<section id="co-${co.code}"><div class="wrap" style="position:relative"><button class="bk" data-back="1" title="섹터 × 포지션 지도로 돌아가기 (누르기 전 보던 위치)"><i>▲</i>Top</button><div class="card">
     <div class="head">
       <div>
         <div class="muted">${i + 1} / ${total}</div>
@@ -353,7 +355,7 @@ function card(co, i, total, meta) {
         <div class="chartbox">${combo(co.qs, 'p', 'py', C.op, G, co.mname === 'OPM' ? 'OPM' : '이익률')}</div>
       </div>
     </div>
-    <div class="note muted">PGOR = 시가총액 ÷ 연간 가이던스 ${esc(co.pname)}. ${G && !Y ? '점선 = (연간 가이던스 − 누계 실적)을 남은 분기에 균등 배분. 보수적 = 가이던스를 올렸는데도 잔여 계획 증가율이 누계 실적 증가율보다 20%p 이상 낮음. ' : ''}${Y ? '연간 결산만 공시(리츠). ' : '분기는 분기 말 월 기준 달력 분기. '}YoY 축은 −100%~+200% 범위로 표시. 2Q25·3Q25 YoY의 전년 수치는 IR BANK 분기 이력. ${co.notes && co.notes.length ? esc(co.notes.join(' · ')) + '. ' : ''}<br>실적·가이던스: ${esc(meta.fin_source)} · ${esc(meta.hist_source)}${WEEKLY ? ' · 1개월·1년 수익률은 4주·52주 전 주간 종가 대비' : ''} · 역사적 신고가 = 현재가가 2010년 이후 최고가(분할 수정, 장중 포함)의 15% 이내이면서 전고점(15% 이상 조정을 거친 가장 최근 고점, 주간 종가 기준) 위 · 신고가 후보 = 15% 이내지만 전고점 미돌파 · 차트 화살표는 52주 저가 기준</div>
+    <div class="note muted">PGOR = 시가총액 ÷ 연간 가이던스 ${esc(co.pname)}.${(co.notes || []).filter(n => n.includes('PGOR')).map(n => ' ' + esc(n) + '.').join('')}${G && !Y ? ' 보수적 = 가이던스를 올렸는데도 잔여 계획 증가율이 누계 실적 증가율보다 20%p 이상 낮음.' : ''}</div>
   </div></div></section>`;
 }
 /* ───────── ETF 화면 ───────── */
@@ -462,10 +464,12 @@ async function main() {
     else if (e.key === 'Home') { e.preventDefault(); go(0); }
     else if (e.key === 'End') { e.preventDefault(); go(secs.length - 1); }
   });
+  let MAPY = null;
   FAV.load(); paintFav();
   deck.addEventListener('click', e => { const fl = e.target.closest('[data-flt]'); if (fl) { const m = document.getElementById('map'); fl.classList.toggle('on'); m.classList.toggle('f' + fl.dataset.flt, fl.classList.contains('on')); m.classList.toggle('fon', !!m.querySelector('.fb.on')); return; }
     const fb = e.target.closest('[data-fav]'); if (fb) { FAV.toggle(fb.dataset.fav); paintFav(); return; }
-    const tr = e.target.closest('[data-go]'); if (tr) document.getElementById(tr.dataset.go).scrollIntoView({behavior: 'smooth', block: 'start'}); });
+    const bk = e.target.closest('[data-back]'); if (bk) { const m = document.getElementById('map'); deck.scrollTo({top: MAPY == null ? m.offsetTop : MAPY, behavior: 'instant'}); return; }
+    const tr = e.target.closest('[data-go]'); if (tr) { if (tr.closest('#map')) MAPY = deck.scrollTop; document.getElementById(tr.dataset.go).scrollIntoView({behavior: 'instant', block: 'start'}); } });
 }
 main();
 </script>
