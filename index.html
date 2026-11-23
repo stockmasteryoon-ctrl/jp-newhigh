@@ -114,6 +114,14 @@ dl.tx .bt{color:var(--warn);font-weight:700}
 #nav button:hover{background:#16284a}
 .empty{color:var(--tx3);font-size:13px;padding:40px 8px;text-align:center}
 .ath{display:inline-block;font-size:12.5px;font-weight:650;letter-spacing:0;padding:3px 10px;border-radius:999px;margin-left:10px;vertical-align:4px;color:var(--warn);border:1px solid var(--warn);background:var(--warn-bg)}
+.ath.c{background:transparent;border-style:dashed}
+.flt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 8px;font-size:12px}
+.fb{font:inherit;font-size:12.5px;font-weight:650;padding:4px 12px;border-radius:999px;cursor:pointer;background:transparent;color:var(--tx2);border:1px solid var(--line2)}
+.fb b{font-weight:700;margin-left:3px}
+.fb.n.on{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}.fb.c.on{color:var(--warn);border-color:var(--warn);border-style:dashed}
+#map.fon .pw{opacity:.22;transition:opacity .15s}
+#map.fn .pw[data-ath="n"],#map.fc .pw[data-ath="c"]{opacity:1}
+#map.fn .pw[data-ath="n"] .pc{box-shadow:0 0 0 1.5px var(--warn)}#map.fc .pw[data-ath="c"] .pc{outline:1.5px dashed var(--warn);outline-offset:0}
 </style>
 </head>
 <body>
@@ -324,7 +332,7 @@ function card(co, i, total, meta) {
     <div class="head">
       <div>
         <div class="muted">${i + 1} / ${total}</div>
-        <h2><button class="fav" data-fav="${co.code}" aria-label="즐겨찾기" title="즐겨찾기">☆</button>${esc(co.name)}<span class="code">${co.code}</span>${co.p && co.p.ath && co.p.ath.is_new ? `<span class="ath" title="2010년 이후 최고가 ${num(co.p.ath.v)}엔 (현재가 ${pct(co.p.last / co.p.ath.v - 1)}) · 전고점 ${num(co.p.ath.prev)}엔${co.p.ath.prev_ub ? ' 이하' : ''} 상회">역사적 신고가</span>` : ''}</h2>
+        <h2><button class="fav" data-fav="${co.code}" aria-label="즐겨찾기" title="즐겨찾기">☆</button>${esc(co.name)}<span class="code">${co.code}</span>${co.p && co.p.ath && co.p.ath.is_new ? `<span class="ath" title="2010년 이후 최고가 ${num(co.p.ath.v)}엔 (현재가 ${pct(co.p.last / co.p.ath.v - 1)}) · 전고점 ${num(co.p.ath.prev)}엔${co.p.ath.prev_ub ? ' 이하' : ''} 상회">역사적 신고가</span>` : co.p && co.p.ath && co.p.ath.cand ? `<span class="ath c" title="2010년 이후 최고가 ${num(co.p.ath.v)}엔 (현재가 ${pct(co.p.last / co.p.ath.v - 1)}) · 전고점 ${num(co.p.ath.prev)}엔 미돌파 (${pct(co.p.last / co.p.ath.prev - 1)})">신고가 후보</span>` : ''}</h2>
         <div class="chips">${co.n225 ? '<span class="chip">닛케이225</span>' : ''}<span class="chip">${esc(co.sector)} – ${esc(co.sub)}</span></div>
       </div>
       <div class="kpis">
@@ -345,7 +353,7 @@ function card(co, i, total, meta) {
         <div class="chartbox">${combo(co.qs, 'p', 'py', C.op, G, co.mname === 'OPM' ? 'OPM' : '이익률')}</div>
       </div>
     </div>
-    <div class="note muted">PGOR = 시가총액 ÷ 연간 가이던스 ${esc(co.pname)}. ${G && !Y ? '점선 = (연간 가이던스 − 누계 실적)을 남은 분기에 균등 배분. 보수적 = 가이던스를 올렸는데도 잔여 계획 증가율이 누계 실적 증가율보다 20%p 이상 낮음. ' : ''}${Y ? '연간 결산만 공시(리츠). ' : '분기는 분기 말 월 기준 달력 분기. '}YoY 축은 −100%~+200% 범위로 표시. 2Q25·3Q25 YoY의 전년 수치는 IR BANK 분기 이력. ${co.notes && co.notes.length ? esc(co.notes.join(' · ')) + '. ' : ''}<br>실적·가이던스: ${esc(meta.fin_source)} · ${esc(meta.hist_source)}${WEEKLY ? ' · 1개월·1년 수익률은 4주·52주 전 주간 종가 대비' : ''} · 역사적 신고가 = 현재가가 2010년 이후 최고가(분할 수정, 장중 포함)의 15% 이내이면서 전고점(신고가 갱신 전, 15% 이상 조정을 거친 직전 고점) 위 · 차트 화살표는 52주 저가 기준</div>
+    <div class="note muted">PGOR = 시가총액 ÷ 연간 가이던스 ${esc(co.pname)}. ${G && !Y ? '점선 = (연간 가이던스 − 누계 실적)을 남은 분기에 균등 배분. 보수적 = 가이던스를 올렸는데도 잔여 계획 증가율이 누계 실적 증가율보다 20%p 이상 낮음. ' : ''}${Y ? '연간 결산만 공시(리츠). ' : '분기는 분기 말 월 기준 달력 분기. '}YoY 축은 −100%~+200% 범위로 표시. 2Q25·3Q25 YoY의 전년 수치는 IR BANK 분기 이력. ${co.notes && co.notes.length ? esc(co.notes.join(' · ')) + '. ' : ''}<br>실적·가이던스: ${esc(meta.fin_source)} · ${esc(meta.hist_source)}${WEEKLY ? ' · 1개월·1년 수익률은 4주·52주 전 주간 종가 대비' : ''} · 역사적 신고가 = 현재가가 2010년 이후 최고가(분할 수정, 장중 포함)의 15% 이내이면서 전고점(15% 이상 조정을 거친 가장 최근 고점, 주간 종가 기준) 위 · 신고가 후보 = 15% 이내지만 전고점 미돌파 · 차트 화살표는 52주 저가 기준</div>
   </div></div></section>`;
 }
 /* ───────── ETF 화면 ───────── */
@@ -404,10 +412,11 @@ function mapPage(cos, PZ) {
   }).filter(r => r.n).sort((a, b) => (b.att / b.n - a.att / a.n) || (b.sg - a.sg) || (b.m1 - a.m1));
   const chip = i => { const f = i.co.fin, dm = i.g.dm;
     const y = f && f.yoy != null ? `<i>${pct(f.yoy, 0)}${dm == null ? '' : dm >= 0.5 ? '↑' : dm <= -0.5 ? '↓' : ''}</i>` : '';
-    return `<span class="pw" data-code="${i.co.code}"><button class="st" data-fav="${i.co.code}" aria-label="즐겨찾기">★</button><span class="pc${i.g.strong ? ' s' : ''}" data-go="co-${i.co.code}" title="${esc(i.cat ? i.cat.t : '')}">${esc(i.co.name)}${y}${sigTag(i.cat)}</span></span>`; };
+    return `<span class="pw" data-code="${i.co.code}"${i.co.p && i.co.p.ath && i.co.p.ath.is_new ? ' data-ath="n"' : i.co.p && i.co.p.ath && i.co.p.ath.cand ? ' data-ath="c"' : ''}><button class="st" data-fav="${i.co.code}" aria-label="즐겨찾기">★</button><span class="pc${i.g.strong ? ' s' : ''}" data-go="co-${i.co.code}" title="${esc(i.cat ? i.cat.t : '')}">${esc(i.co.name)}${y}${sigTag(i.cat)}</span></span>`; };
   const cell = (r, p) => '<td>' + r.items.filter(i => i.pos === p).sort((a, b) => (b.co.p ? b.co.p.r1m : 0) - (a.co.p ? a.co.p.r1m : 0)).map(chip).join('') + '</td>';
   return `<section id="map"><div class="wrap wide"><h2>섹터 × 포지션 지도</h2>
     <div class="plg"><span><span class="pc s">종목<i>+26%↑</i></span>고성장: 매출 YY +${Math.round(PZ.yoy * 100)}% 이상 또는 이익률 개선 +${PZ.threshold}%p 이상</span><span>숫자는 최근 분기 매출 YY, ↑↓는 이익률 0.5%p 이상 개선·악화</span><span><b style="color:#ff8f8f">▲</b> 연간 가이던스 상향 <b style="color:#7fb2ff">▼</b> 하향 <b style="color:var(--warn)">◆</b> 실적 외 이벤트</span><span><span class="pstar">주가·실적 일치</span>공격수·공미 절반 이상, 고성장 2개 이상</span></div>
+    <div class="flt"><span class="muted">강조 필터</span><button class="fb n" data-flt="n">역사적 신고가 <b>${cos.filter(c => c.p && c.p.ath && c.p.ath.is_new).length}</b></button><button class="fb c" data-flt="c">신고가 후보 <b>${cos.filter(c => c.p && c.p.ath && c.p.ath.cand).length}</b></button><span class="muted">누르면 해당 종목만 강조 (다시 누르면 해제)</span></div>
     <div class="card" style="padding:8px 12px"><table class="pmap"><colgroup><col style="width:190px"><col style="width:17%"><col style="width:23%"><col style="width:25%"><col></colgroup>
     <thead><tr><th>섹터</th><th>공격수<small>비방어 업종, 실적으로 상승</small></th><th>공미<small>방어·내수지만 동종 대비 초과</small></th><th>수미<small>테마 묶음으로 동반 상승</small></th><th>수비수<small>덜 빠져서 고가 근처</small></th></tr></thead><tbody>
     ${rows.map(r => { const best = r.att / r.n >= 0.5 && r.sg >= 2;
@@ -454,7 +463,8 @@ async function main() {
     else if (e.key === 'End') { e.preventDefault(); go(secs.length - 1); }
   });
   FAV.load(); paintFav();
-  deck.addEventListener('click', e => { const fb = e.target.closest('[data-fav]'); if (fb) { FAV.toggle(fb.dataset.fav); paintFav(); return; }
+  deck.addEventListener('click', e => { const fl = e.target.closest('[data-flt]'); if (fl) { const m = document.getElementById('map'); fl.classList.toggle('on'); m.classList.toggle('f' + fl.dataset.flt, fl.classList.contains('on')); m.classList.toggle('fon', !!m.querySelector('.fb.on')); return; }
+    const fb = e.target.closest('[data-fav]'); if (fb) { FAV.toggle(fb.dataset.fav); paintFav(); return; }
     const tr = e.target.closest('[data-go]'); if (tr) document.getElementById(tr.dataset.go).scrollIntoView({behavior: 'smooth', block: 'start'}); });
 }
 main();
