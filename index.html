@@ -324,7 +324,7 @@ function card(co, i, total, meta) {
     <div class="head">
       <div>
         <div class="muted">${i + 1} / ${total}</div>
-        <h2><button class="fav" data-fav="${co.code}" aria-label="즐겨찾기" title="즐겨찾기">☆</button>${esc(co.name)}<span class="code">${co.code}</span>${co.p && co.p.ath && co.p.ath.is_new ? `<span class="ath" title="2010년 이후 최고가 ${num(co.p.ath.v)}엔 · 현재가 ${pct(co.p.last / co.p.ath.v - 1)}">역사적 신고가</span>` : ''}</h2>
+        <h2><button class="fav" data-fav="${co.code}" aria-label="즐겨찾기" title="즐겨찾기">☆</button>${esc(co.name)}<span class="code">${co.code}</span>${co.p && co.p.ath && co.p.ath.is_new ? `<span class="ath" title="2010년 이후 최고가 ${num(co.p.ath.v)}엔 (현재가 ${pct(co.p.last / co.p.ath.v - 1)}) · 전고점 ${num(co.p.ath.prev)}엔${co.p.ath.prev_ub ? ' 이하' : ''} 상회">역사적 신고가</span>` : ''}</h2>
         <div class="chips">${co.n225 ? '<span class="chip">닛케이225</span>' : ''}<span class="chip">${esc(co.sector)} – ${esc(co.sub)}</span></div>
       </div>
       <div class="kpis">
@@ -345,7 +345,7 @@ function card(co, i, total, meta) {
         <div class="chartbox">${combo(co.qs, 'p', 'py', C.op, G, co.mname === 'OPM' ? 'OPM' : '이익률')}</div>
       </div>
     </div>
-    <div class="note muted">PGOR = 시가총액 ÷ 연간 가이던스 ${esc(co.pname)}. ${G && !Y ? '점선 = (연간 가이던스 − 누계 실적)을 남은 분기에 균등 배분. 보수적 = 가이던스를 올렸는데도 잔여 계획 증가율이 누계 실적 증가율보다 20%p 이상 낮음. ' : ''}${Y ? '연간 결산만 공시(리츠). ' : '분기는 분기 말 월 기준 달력 분기. '}YoY 축은 −100%~+200% 범위로 표시. 2Q25·3Q25 YoY의 전년 수치는 IR BANK 분기 이력. ${co.notes && co.notes.length ? esc(co.notes.join(' · ')) + '. ' : ''}<br>실적·가이던스: ${esc(meta.fin_source)} · ${esc(meta.hist_source)}${WEEKLY ? ' · 1개월·1년 수익률은 4주·52주 전 주간 종가 대비' : ''} · 역사적 신고가 = 현재가가 2010년 이후 최고가(분할 수정, 장중 포함)의 15% 이내 · 차트 화살표는 52주 저가 기준</div>
+    <div class="note muted">PGOR = 시가총액 ÷ 연간 가이던스 ${esc(co.pname)}. ${G && !Y ? '점선 = (연간 가이던스 − 누계 실적)을 남은 분기에 균등 배분. 보수적 = 가이던스를 올렸는데도 잔여 계획 증가율이 누계 실적 증가율보다 20%p 이상 낮음. ' : ''}${Y ? '연간 결산만 공시(리츠). ' : '분기는 분기 말 월 기준 달력 분기. '}YoY 축은 −100%~+200% 범위로 표시. 2Q25·3Q25 YoY의 전년 수치는 IR BANK 분기 이력. ${co.notes && co.notes.length ? esc(co.notes.join(' · ')) + '. ' : ''}<br>실적·가이던스: ${esc(meta.fin_source)} · ${esc(meta.hist_source)}${WEEKLY ? ' · 1개월·1년 수익률은 4주·52주 전 주간 종가 대비' : ''} · 역사적 신고가 = 현재가가 2010년 이후 최고가(분할 수정, 장중 포함)의 15% 이내이면서 전고점(신고가 갱신 전, 15% 이상 조정을 거친 직전 고점) 위 · 차트 화살표는 52주 저가 기준</div>
   </div></div></section>`;
 }
 /* ───────── ETF 화면 ───────── */
